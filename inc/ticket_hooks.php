@@ -89,7 +89,7 @@ function plugin_mattermostjetlag_get_matching_rules(string $action, CommonDBTM $
     if ($ruleTarget === 'Ticket') {
         if ($item::getType() === 'Ticket') {
             $filterItem = $item;
-        } elseif ($item::getType() === 'ITILFollowup' && isset($item->fields['items_id'])) {
+        } elseif (in_array($item::getType(), ['ITILFollowup', 'ITILSolution'], true) && isset($item->fields['items_id'])) {
             $filterItem = new Ticket();
             if (!$filterItem->getFromDB((int) $item->fields['items_id'])) {
                 return [];
@@ -271,6 +271,10 @@ function plugin_mattermostjetlag_build_ticket_log_data(CommonDBTM $ticket, strin
         'assignee_logins'  => $idsToLogins($assigneeIds),
     ];
 
+    if (property_exists($ticket, 'input') && is_array($ticket->input ?? null) && !empty($ticket->input)) {
+        $data['hook_input'] = $ticket->input;
+    }
+
     if (!empty($extra)) {
         $data = array_merge($data, $extra);
     }
@@ -352,6 +356,267 @@ function plugin_mattermostjetlag_render_rule_messages_for_ticket(array $matching
 }
 
 /**
+ * Разворачивает строку получателей из правила в плоский массив адресатов.
+ * Макросы 'assigned', 'requester', 'observer' заменяются на @login акторов заявки.
+ * Прочие токены (#channel, @user) передаются как есть.
+ * Дубли удаляются через array_unique.
+ */
+function plugin_mattermostjetlag_expand_recipients(string $recipientStr, array $data): array
+{
+    $tokens = array_filter(array_map('trim', explode(',', $recipientStr)));
+    $result = [];
+
+    $addLogins = static function (array $logins) use (&$result): void {
+        foreach ($logins as $login) {
+            $login = (string) $login;
+            if ($login === '') {
+                continue;
+            }
+            $result[] = str_starts_with($login, '@') ? $login : '@' . $login;
+        }
+    };
+
+    foreach ($tokens as $token) {
+        $normalized = trim($token, '{}');
+        if ($normalized === 'assigned') {
+            $addLogins(is_array($data['assignee_logins'] ?? null) ? $data['assignee_logins'] : []);
+        } elseif ($normalized === 'requester') {
+            $addLogins(is_array($data['requester_logins'] ?? null) ? $data['requester_logins'] : []);
+        } elseif ($normalized === 'observer') {
+            $addLogins(is_array($data['observer_logins'] ?? null) ? $data['observer_logins'] : []);
+        } elseif ($normalized === 'approver') {
+            $approver = (string) ($data['approval_target'] ?? '');
+            if ($approver !== '') {
+                $result[] = str_starts_with($approver, '@') ? $approver : '@' . $approver;
+            }
+        } else {
+            $result[] = $token;
+        }
+    }
+
+    return array_values(array_unique($result));
+}
+
+/**
+ * Строит массив замен макросов для данных заявки.
+ * Используется как для text-шаблонов, так и для raw JSON payload.
+ */
+function plugin_mattermostjetlag_build_replacements(array $data): array
+{
+    $ticketId        = (int) ($data['ticket_id'] ?? 0);
+    $requesterLogins = is_array($data['requester_logins'] ?? null) ? $data['requester_logins'] : [];
+    $observerLogins  = is_array($data['observer_logins'] ?? null) ? $data['observer_logins'] : [];
+    $assigneeLogins  = is_array($data['assignee_logins'] ?? null) ? $data['assignee_logins'] : [];
+
+    $formatLogins = static function (array $logins): string {
+        $parts = [];
+        foreach ($logins as $login) {
+            $login = (string) $login;
+            if ($login === '') {
+                continue;
+            }
+            $parts[] = str_starts_with($login, '@') ? $login : '@' . $login;
+        }
+        return implode(', ', $parts);
+    };
+
+    $link = '';
+    if ($ticketId > 0) {
+        $relative = Ticket::getFormURLWithID($ticketId, false);
+        global $CFG_GLPI;
+        $link = ($CFG_GLPI['url_base'] ?? '') . $relative;
+    }
+
+    $approverLogin = (string) ($data['approval_target'] ?? '');
+    $approverFormatted = $approverLogin !== ''
+        ? (str_starts_with($approverLogin, '@') ? $approverLogin : '@' . $approverLogin)
+        : '';
+
+    return [
+        '{id}'        => $ticketId > 0 ? (string) $ticketId : '',
+        '{title}'     => (string) ($data['subject'] ?? ''),
+        '{status}'    => (string) ($data['status'] ?? ''),
+        '{type}'      => (string) ($data['type'] ?? ''),
+        '{event}'     => (string) ($data['event'] ?? ''),
+        '{urgency}'   => (string) ($data['urgency'] ?? ''),
+        '{priority}'  => (string) ($data['priority'] ?? ''),
+        '{category}'  => (string) ($data['category'] ?? ''),
+        '{link}'      => $link,
+        '{requester}' => $formatLogins($requesterLogins),
+        '{observer}'  => $formatLogins($observerLogins),
+        '{assigned}'  => $formatLogins($assigneeLogins),
+        '{approver}'  => $approverFormatted,
+    ];
+}
+
+/**
+ * Рендерит сообщение одного правила, подставляя макросы из данных заявки.
+ * Возвращает plain text для отправки в Mattermost.
+ */
+function plugin_mattermostjetlag_render_single_rule_message(
+    \GlpiPlugin\Mattermostjetlag\NotificationRule $rule,
+    array $data
+): string {
+    $template = (string) ($rule->getField('message') ?? '');
+    if ($template === '') {
+        return '';
+    }
+    return strtr($template, plugin_mattermostjetlag_build_replacements($data));
+}
+
+/**
+ * Применяет макросы к raw JSON payload через decode → strtr → encode.
+ * json_encode на выходе гарантирует валидный JSON независимо от спецсимволов в значениях.
+ * Возвращает null если raw_payload содержит невалидный JSON.
+ */
+function plugin_mattermostjetlag_apply_macros_to_raw_payload(string $rawPayload, array $replacements): ?string
+{
+    $decoded = json_decode($rawPayload, true);
+    if (!is_array($decoded)) {
+        return null;
+    }
+    array_walk_recursive($decoded, static function (&$value) use ($replacements): void {
+        if (is_string($value)) {
+            $value = strtr($value, $replacements);
+        }
+    });
+    $result = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    return $result !== false ? $result : null;
+}
+
+/** @deprecated File logging removed; send results are stored in dispatch_results inside DB event log. */
+function plugin_mattermostjetlag_log_mattermost_send(
+    int $ruleId,
+    string $webhookUrl,
+    ?string $payloadJson,
+    bool $simulate,
+    bool $ok,
+    string $error
+): void {
+}
+
+/**
+ * Диспатч уведомлений по всем совпавшим правилам.
+ * Для каждого правила разворачивает получателей и отправляет отдельный запрос каждому.
+ * При simulate_send=1 — имитирует отправку без реального HTTP-запроса.
+ *
+ * raw_payload — дополнение к базовому payload (text + channel).
+ * Поля text и channel из raw_payload игнорируются: они всегда формируются плагином.
+ *
+ * Возвращает массив результатов для записи в лог.
+ */
+function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, array $data): array
+{
+    $config = new \GlpiPlugin\Mattermostjetlag\Config();
+    if (!$config->getFromDB(1)) {
+        return [];
+    }
+
+    $fields     = $config->fields ?? [];
+    $simulate   = (int) ($fields['simulate_send'] ?? 0) === 1;
+    $connType   = (string) ($fields['connection_type'] ?? '');
+    $webhookUrl = (string) ($fields['webhook_url'] ?? '');
+    $nickname   = ($fields['webhook_bot_nickname'] ?? '') ?: null;
+    $avatar     = ($fields['webhook_bot_avatar'] ?? '') ?: null;
+
+    if ($connType !== \GlpiPlugin\Mattermostjetlag\Config::CONNECTION_WEBHOOK || $webhookUrl === '') {
+        return [];
+    }
+
+    $results = [];
+
+    foreach ($matchingRules as $rule) {
+        if (!$rule instanceof \GlpiPlugin\Mattermostjetlag\NotificationRule) {
+            continue;
+        }
+
+        $message = plugin_mattermostjetlag_render_single_rule_message($rule, $data);
+        if ($message === '') {
+            continue;
+        }
+
+        $recipientStr = (string) ($rule->getField('recipient') ?? '');
+        $recipients   = plugin_mattermostjetlag_expand_recipients($recipientStr, $data);
+
+        // Pre-decode raw_payload once (outside recipient loop).
+        // text and channel are stripped — they are always controlled by the plugin.
+        $rawExtra       = [];
+        $rawDecodeError = null;
+        if ((int) ($rule->getField('use_raw_payload') ?? 0) === 1) {
+            $rawTemplate = (string) ($rule->getField('raw_payload') ?? '');
+            if ($rawTemplate !== '') {
+                $replacements = plugin_mattermostjetlag_build_replacements($data);
+                $resolved     = plugin_mattermostjetlag_apply_macros_to_raw_payload($rawTemplate, $replacements);
+                if ($resolved === null) {
+                    $rawDecodeError = 'raw_payload contains invalid JSON';
+                } else {
+                    $decoded = json_decode($resolved, true);
+                    if (!is_array($decoded)) {
+                        $rawDecodeError = 'raw_payload decoded to non-array';
+                    } else {
+                        unset($decoded['text'], $decoded['channel']);
+                        $rawExtra = $decoded;
+                    }
+                }
+            }
+        }
+
+        foreach ($recipients as $recipient) {
+            $entry = [
+                'rule_id'   => $rule->getID(),
+                'recipient' => $recipient,
+                'simulate'  => $simulate,
+            ];
+
+            if ($rawDecodeError !== null) {
+                $entry['ok']    = false;
+                $entry['error'] = $rawDecodeError;
+                $results[] = $entry;
+                continue;
+            }
+
+            // Build base payload
+            $payload = ['text' => $message, 'channel' => $recipient];
+            if ($nickname !== null && $nickname !== '') {
+                $payload['username'] = $nickname;
+            }
+            if ($avatar !== null && $avatar !== '') {
+                if (preg_match('~^https?://~i', $avatar)) {
+                    $payload['icon_url'] = $avatar;
+                } else {
+                    $payload['icon_emoji'] = $avatar;
+                }
+            }
+
+            // Merge raw_payload extras on top (text/channel already stripped)
+            if (!empty($rawExtra)) {
+                $payload = array_merge($payload, $rawExtra);
+            }
+
+            $payloadJson      = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $entry['payload'] = $payloadJson;
+
+            if ($simulate) {
+                $entry['ok'] = true;
+            } else {
+                $error       = null;
+                $entry['ok'] = \GlpiPlugin\Mattermostjetlag\MattermostClient::sendRaw($webhookUrl, $payloadJson, $error);
+                if (!$entry['ok']) {
+                    $entry['error'] = $error;
+                }
+            }
+
+            plugin_mattermostjetlag_log_mattermost_send(
+                $rule->getID(), $webhookUrl, $payloadJson, $simulate, $entry['ok'], $entry['error'] ?? ''
+            );
+            $results[] = $entry;
+        }
+    }
+
+    return $results;
+}
+
+/**
  * Возвращает true, если заявка была создана менее 10 секунд назад.
  * Используется для игнорирования «мусорных» событий update/approval/followup/members_change,
  * которые GLPI генерирует сразу после создания тикета.
@@ -377,6 +642,7 @@ function plugin_mattermostjetlag_item_add_Ticket(CommonDBTM $item): void
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_add_Ticket', $action, $item, null, $data);
     plugin_mattermostjetlag_log_ticket($data);
@@ -409,6 +675,7 @@ function plugin_mattermostjetlag_item_update_Ticket(CommonDBTM $item): void
             $data['matching_rules_note'] = 'no matching rules';
         } else {
             $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+            $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
         }
         plugin_mattermostjetlag_log_debug('item_update_Ticket', $action, $item, null, $data);
         plugin_mattermostjetlag_log_ticket($data);
@@ -488,11 +755,15 @@ function plugin_mattermostjetlag_item_add_ITILFollowup(CommonDBTM $item): void
     if (empty($data)) {
         return;
     }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
     $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
     if (empty($matchingRules)) {
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_add_ITILFollowup', $action, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);
@@ -538,11 +809,15 @@ function plugin_mattermostjetlag_item_add_TicketValidation(CommonDBTM $item): vo
     if (empty($data)) {
         return;
     }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
     $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
     if (empty($matchingRules)) {
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_add_TicketValidation', $action, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);
@@ -570,11 +845,15 @@ function plugin_mattermostjetlag_item_add_ITILSolution(CommonDBTM $item): void
     if (empty($data)) {
         return;
     }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
     $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
     if (empty($matchingRules)) {
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_add_ITILSolution', $action, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);
@@ -607,11 +886,15 @@ function plugin_mattermostjetlag_item_update_ITILSolution(CommonDBTM $item): voi
     if (empty($data)) {
         return;
     }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
     $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
     if (empty($matchingRules)) {
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_update_ITILSolution', $action, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);
@@ -639,11 +922,15 @@ function plugin_mattermostjetlag_item_add_Ticket_User(CommonDBTM $item): void
     if (empty($data)) {
         return;
     }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
     $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
     if (empty($matchingRules)) {
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_add_Ticket_User', $actionForLog, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);
@@ -689,11 +976,15 @@ function plugin_mattermostjetlag_item_update_TicketValidation(CommonDBTM $item):
     if (empty($data)) {
         return;
     }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
     $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
     if (empty($matchingRules)) {
         $data['matching_rules_note'] = 'no matching rules';
     } else {
         $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_update_TicketValidation', $action, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);

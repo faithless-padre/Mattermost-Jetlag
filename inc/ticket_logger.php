@@ -20,8 +20,7 @@ if (!defined('GLPI_ROOT')) {
 }
 
 /**
- * Запись лога срабатываний правил в matching.log (JSON).
- * Запись только при extended_log = 1.
+ * Запись события в БД при extended_log = 1.
  */
 function plugin_mattermostjetlag_log_ticket(array $data): void
 {
@@ -29,20 +28,11 @@ function plugin_mattermostjetlag_log_ticket(array $data): void
         return;
     }
 
-    $logDir  = GLPI_ROOT . '/files/_log/mattermostjetlag';
-    $logFile = $logDir . '/matching.log';
-    if (!is_dir($logDir)) {
-        @mkdir($logDir, 0770, true);
-    }
-
     if (!isset($data['datetime'])) {
         $data['datetime'] = date('c');
     }
-    $data['_seq'] = plugin_mattermostjetlag_next_log_seq();
+    $data['_seq']       = plugin_mattermostjetlag_next_log_seq();
     $data['_microtime'] = microtime(true);
-
-    $line = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
-    @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
 
     plugin_mattermostjetlag_log_ticket_to_db($data);
 }
@@ -78,10 +68,7 @@ function plugin_mattermostjetlag_log_ticket_to_db(array $data): void
     );
 }
 
-/**
- * Запись отладочного лога сработавших хуков в debug.log (блочный формат).
- * Все доступные поля item, input, ticket.
- */
+/** @deprecated File logging removed; events are stored in DB via log_ticket(). */
 function plugin_mattermostjetlag_log_debug(
     string $hook,
     string $action,
@@ -89,62 +76,6 @@ function plugin_mattermostjetlag_log_debug(
     ?CommonDBTM $ticket = null,
     array $builtData = []
 ): void {
-    if (!plugin_mattermostjetlag_extended_log_enabled()) {
-        return;
-    }
-
-    $logDir  = GLPI_ROOT . '/files/_log/mattermostjetlag';
-    $logFile = $logDir . '/debug.log';
-    if (!is_dir($logDir)) {
-        @mkdir($logDir, 0770, true);
-    }
-
-    $flatten = function ($v): string {
-        if (is_array($v) || is_object($v)) {
-            return json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        }
-        return (string) ($v ?? '');
-    };
-
-    $lines = [
-        '----BEGIN EVENT----',
-        'seq: ' . plugin_mattermostjetlag_next_log_seq(),
-        'microtime: ' . microtime(true),
-        'datetime: ' . date('c'),
-        'hook: ' . $hook,
-        'action: ' . $action,
-        'itemtype: ' . $item::getType(),
-        'item_id: ' . (method_exists($item, 'getID') ? $item->getID() : ($item->fields['id'] ?? '')),
-    ];
-
-    foreach ($item->fields ?? [] as $k => $v) {
-        $lines[] = 'item_field_' . $k . ': ' . $flatten($v);
-    }
-
-    if (property_exists($item, 'input') && is_array($item->input ?? null)) {
-        $lines[] = 'item_input: ' . $flatten($item->input);
-    }
-
-    if ($ticket !== null && $ticket::getType() === 'Ticket') {
-        $lines[] = '--- linked_ticket ---';
-        foreach ($ticket->fields ?? [] as $k => $v) {
-            $lines[] = 'ticket_field_' . $k . ': ' . $flatten($v);
-        }
-        if (property_exists($ticket, 'input') && is_array($ticket->input ?? null)) {
-            $lines[] = 'ticket_input: ' . $flatten($ticket->input);
-        }
-    }
-
-    if (!empty($builtData)) {
-        $lines[] = '--- built_data ---';
-        foreach ($builtData as $k => $v) {
-            $lines[] = $k . ': ' . $flatten($v);
-        }
-    }
-
-    $lines[] = '----END EVENT----';
-    $block = implode(PHP_EOL, $lines) . PHP_EOL . PHP_EOL;
-    @file_put_contents($logFile, $block, FILE_APPEND | LOCK_EX);
 }
 
 function plugin_mattermostjetlag_next_log_seq(): int

@@ -69,6 +69,7 @@ function plugin_mattermostjetlag_install()
             `last_test_success` tinyint(1) DEFAULT NULL,
             `last_test_error` text DEFAULT NULL,
             `extended_log` tinyint(1) NOT NULL DEFAULT 0,
+            `simulate_send` tinyint(1) NOT NULL DEFAULT 0,
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`)
@@ -108,6 +109,9 @@ function plugin_mattermostjetlag_install()
         }
         if (!$DB->fieldExists($table, 'extended_log')) {
             $migration->addField($table, 'extended_log', 'tinyint(1) NOT NULL DEFAULT 0', ['after' => 'last_test_error']);
+        }
+        if (!$DB->fieldExists($table, 'simulate_send')) {
+            $migration->addField($table, 'simulate_send', 'tinyint(1) NOT NULL DEFAULT 0', ['after' => 'extended_log']);
         }
     }
 

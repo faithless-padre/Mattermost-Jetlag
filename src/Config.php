@@ -77,7 +77,7 @@ class Config extends CommonDBTM
 
     /**
      * Tab labels for this config.
-     * Self-Test and Debug Mode tabs are shown only when GLPI debug mode is active.
+     * Variables Override and Debug Mode tabs are shown only when GLPI debug mode is active.
      */
     public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
     {
@@ -91,7 +91,6 @@ class Config extends CommonDBTM
             ];
             if (isset($_SESSION['glpi_use_mode']) && $_SESSION['glpi_use_mode'] == Session::DEBUG_MODE) {
                 $tabs[5] = self::createTabEntry(__('Variables Override', 'mattermostjetlag'), 0, null, 'ti ti-variable');
-                $tabs[7] = self::createTabEntry(__('Self-Test', 'mattermostjetlag'), 0, null, 'ti ti-stethoscope');
                 $tabs[8] = self::createTabEntry(__('Debug Mode', 'mattermostjetlag'), 0, null, 'ti ti-bug');
             }
             return $tabs;

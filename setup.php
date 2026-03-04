@@ -106,3 +106,15 @@ function plugin_mattermostjetlag_check_config($verbose = false)
 {
     return true;
 }
+
+/**
+ * Lazy column migrations — runs on every plugin load, no-op after first run.
+ */
+function plugin_mattermostjetlag_init()
+{
+    global $DB;
+    $table = GlpiPlugin\Mattermostjetlag\Config::getTable();
+    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'simulate_send')) {
+        $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `simulate_send` tinyint(1) NOT NULL DEFAULT 0 AFTER `extended_log`");
+    }
+}

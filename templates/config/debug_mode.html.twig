@@ -1,4 +1,4 @@
-{# Debug Mode tab — extended log settings + event log viewer #}
+{# Debug Mode tab — event log viewer #}
 <div class="mjl-tab-content">
 {# ═══════ Section header ═══════ #}
 <div class="card border-0 shadow-none p-0 m-0 mt-n2">
@@ -13,56 +13,27 @@
     </div>
 </div>
 
-{# ═══════ Extended log setting ═══════ #}
-<div class="mjl-log-card card border mb-3">
-    <div class="card-body">
-        <div class="alert alert-success mb-3 d-flex align-items-center">
-            <i class="ti ti-book flex-shrink-0 me-2" style="font-size: 1.25rem;" aria-hidden="true"></i>
-            <span>{{ __('Configuration and viewing of events for debugging', 'mattermostjetlag') }}</span>
-        </div>
-        <form method="post" action="{{ form_action }}">
-            <input type="hidden" name="id" value="{{ config_id }}">
-            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="update_debug_config" value="1">
-
-            <div class="mattermostjetlag-form">
-                <div class="mattermostjetlag-form-row" style="align-items: center;">
-                    <span class="mattermostjetlag-form-label">{{ __('Record extended log', 'mattermostjetlag') }}:</span>
-                    <div class="mattermostjetlag-form-control-cell">
-                        <select name="extended_log" id="mjl_extended_log" class="form-select"
-                                {{ can_update ? '' : 'disabled' }}>
-                            <option value="0" {{ not extended_log ? 'selected' : '' }}>{{ __('Disabled', 'mattermostjetlag') }}</option>
-                            <option value="1" {{ extended_log ? 'selected' : '' }}>{{ __('Enabled', 'mattermostjetlag') }}</option>
-                        </select>
-                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-                              data-bs-title="{{ __('Event log rotation: only the 500 most recent events are kept. Older entries are removed automatically.', 'mattermostjetlag')|e }}">?</span>
-                        {% if can_update %}
-                        <input type="submit" class="btn btn-primary ms-auto" value="{{ _x('button', 'Save', 'mattermostjetlag') }}">
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-{# ═══════ Event log viewer ═══════ #}
-<div class="card border-0 shadow-none p-0 m-0">
-    <div class="card-header mb-3 pt-2 border-top rounded-0"
-         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
-        <h4 class="card-title ms-5">
-            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
-                <i class="fs-2x ti ti-list-details"></i>
-            </div>
-            {{ __('Event log', 'mattermostjetlag') }}
-        </h4>
-    </div>
-</div>
-{# ═══════ Search toolbar ═══════ #}
+{# ═══════ Toolbar ═══════ #}
 <div class="mjl-rules-toolbar card border mb-3">
     <div class="card-body py-2">
         <div class="d-flex flex-wrap align-items-center gap-3">
             {% if can_update %}
+            <button type="button" id="mjl-log-toggle-btn"
+                    class="btn btn-sm {{ extended_log ? 'btn-warning' : 'btn-danger' }}"
+                    data-extended-log="{{ extended_log ? '1' : '0' }}"
+                    data-i18n-enable="{{ __('Enable events log', 'mattermostjetlag')|e('html_attr') }}"
+                    data-i18n-disable="{{ __('Disable events log', 'mattermostjetlag')|e('html_attr') }}">
+                <i class="ti {{ extended_log ? 'ti-toggle-right' : 'ti-toggle-left' }} me-1"></i>
+                {{ extended_log ? __('Disable events log', 'mattermostjetlag') : __('Enable events log', 'mattermostjetlag') }}
+            </button>
+            <button type="button" id="mjl-simulate-toggle-btn"
+                    class="btn btn-sm {{ simulate_send ? 'btn-warning' : 'btn-danger' }}"
+                    data-simulate-send="{{ simulate_send ? '1' : '0' }}"
+                    data-i18n-enable="{{ __('Enable Notify Simulation', 'mattermostjetlag')|e('html_attr') }}"
+                    data-i18n-disable="{{ __('Disable Notify Simulation', 'mattermostjetlag')|e('html_attr') }}">
+                <i class="ti {{ simulate_send ? 'ti-bell' : 'ti-bell-off' }} me-1"></i>
+                {{ simulate_send ? __('Disable Notify Simulation', 'mattermostjetlag') : __('Enable Notify Simulation', 'mattermostjetlag') }}
+            </button>
             <button type="button" id="mjl-log-clear-btn" class="btn btn-sm btn-outline-danger">
                 <i class="ti ti-trash me-1"></i>{{ __('Clear log', 'mattermostjetlag') }}
             </button>

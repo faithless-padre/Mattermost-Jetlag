@@ -192,6 +192,7 @@
                     <div class="mattermostjetlag-form-control-cell">
                         <textarea name="rule_raw_payload" id="mjl_raw_payload"
                                   rows="18" class="form-control mjl-monospace">{{ rule.raw_payload|default(default_raw_payload)|e }}</textarea>
+                        <div id="mjl_raw_payload_autocomplete" class="mjl-ac-list" aria-hidden="true"></div>
                     </div>
                 </div>
             </div>
@@ -324,7 +325,9 @@
      data-default-recipient="{{ default_recipient|e }}"
      data-message-placeholder="{{ message_placeholder|e }}"
      data-macros-by-target="{{ macros_by_target|json_encode|e('html_attr') }}"
-     data-recipient-options-by-target="{{ recipient_options_by_target|json_encode|e('html_attr') }}">
+     data-macros-extra-by-event="{{ macros_extra_by_event|json_encode|e('html_attr') }}"
+     data-recipient-options-by-target="{{ recipient_options_by_target|json_encode|e('html_attr') }}"
+     data-recipient-options-extra-by-event="{{ recipient_options_extra_by_event|json_encode|e('html_attr') }}">
 </div>
 <script>
 if (typeof window.mjlEditorInit === 'function') {

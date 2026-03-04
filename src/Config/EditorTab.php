@@ -43,9 +43,23 @@ class EditorTab
         'Ticket' => ['id', 'title', 'urgency', 'priority', 'type', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
     ];
 
+    /** Extra macros available only for specific events (merged on top of base macros) */
+    public const RULE_MACROS_EXTRA_BY_EVENT = [
+        'approval' => ['approver'],
+        'approved' => ['approver'],
+        'rejected' => ['approver'],
+    ];
+
     /** Recipient macros by target */
     public const RECIPIENT_OPTIONS_BY_TARGET = [
         'Ticket' => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
+    ];
+
+    /** Extra recipient options available only for specific events */
+    public const RECIPIENT_OPTIONS_EXTRA_BY_EVENT = [
+        'approval' => ['approver' => 'approver'],
+        'approved' => ['approver' => 'approver'],
+        'rejected' => ['approver' => 'approver'],
     ];
 
     public const DEFAULT_RULE_NAME = '[Mattermost] -> Send notifications to all';
@@ -72,31 +86,26 @@ class EditorTab
         }
 
         $useIconUrl = $avatar !== '' && preg_match('#^https?://#i', $avatar);
-        $username   = $nickname;
-        $iconEmoji  = $useIconUrl ? '' : $avatar;
-        $iconUrl    = $useIconUrl ? $avatar : '';
 
-        $base = [
-            'username' => $username,
-            'metadata' => [
-                'priority' => [
-                    'priority'      => 'urgent',
-                    'requested_ack' => true,
-                ],
-            ],
-            'props'     => [
-                'attachments' => [
-                    [
-                        'pretext' => 'Attachment title',
-                        'text'    => 'Text in attach',
-                    ],
-                ],
+        $payload = [];
+        if ($useIconUrl) {
+            $payload['icon_url'] = $avatar;
+        } elseif ($avatar !== '') {
+            $payload['icon_emoji'] = $avatar;
+        }
+        if ($nickname !== '') {
+            $payload['username'] = $nickname;
+        }
+        $payload['priority'] = [
+            'priority'      => 'urgent',
+            'requested_ack' => true,
+        ];
+        $payload['attachments'] = [
+            [
+                'pretext' => 'Attachment title',
+                'text'    => 'Text in attach',
             ],
         ];
-
-        $payload = $useIconUrl
-            ? ['icon_url' => $iconUrl] + $base
-            : ['icon_emoji' => $iconEmoji] + $base;
 
         return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
@@ -167,8 +176,10 @@ class EditorTab
             'default_recipient'     => self::DEFAULT_RECIPIENT,
             'message_placeholder'  => self::MESSAGE_PLACEHOLDER,
             'default_raw_payload'   => self::buildDefaultRawPayload($config),
-            'macros_by_target'      => self::RULE_MACROS_BY_TARGET,
-            'recipient_options_by_target' => self::RECIPIENT_OPTIONS_BY_TARGET,
+            'macros_by_target'               => self::RULE_MACROS_BY_TARGET,
+            'macros_extra_by_event'          => self::RULE_MACROS_EXTRA_BY_EVENT,
+            'recipient_options_by_target'    => self::RECIPIENT_OPTIONS_BY_TARGET,
+            'recipient_options_extra_by_event' => self::RECIPIENT_OPTIONS_EXTRA_BY_EVENT,
         ]);
     }
 }

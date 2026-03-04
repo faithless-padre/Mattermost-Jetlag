@@ -45,10 +45,6 @@ msgid "Instructions"
 msgstr "Инструкции"
 
 #: src/Config.php
-msgid "Self-Test"
-msgstr "Диагностика"
-
-#: src/Config.php
 msgid "Debug Mode"
 msgstr "Отладка"
 
@@ -822,3 +818,19 @@ msgstr "Решение принято"
 #: src/Config/EditorTab.php
 msgid "Solution Rejected"
 msgstr "Решение отклонено"
+
+#: templates/config/debug_mode.html.twig
+msgid "Enable events log"
+msgstr "Включить журнал событий"
+
+#: templates/config/debug_mode.html.twig
+msgid "Disable events log"
+msgstr "Отключить журнал событий"
+
+#: templates/config/debug_mode.html.twig
+msgid "Enable Notify Simulation"
+msgstr "Включить симуляцию отправки"
+
+#: templates/config/debug_mode.html.twig
+msgid "Disable Notify Simulation"
+msgstr "Отключить симуляцию отправки"

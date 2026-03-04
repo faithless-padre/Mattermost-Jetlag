@@ -28,7 +28,9 @@ window.mjlDebugModeInit = function () {
     var listEl      = document.getElementById('mjl-log-list');
     var showMoreBtn = document.getElementById('mjl-log-show-more');
     var paginator   = document.querySelector('.mjl-log-paginator');
-    var clearBtn    = document.getElementById('mjl-log-clear-btn');
+    var clearBtn      = document.getElementById('mjl-log-clear-btn');
+    var toggleBtn     = document.getElementById('mjl-log-toggle-btn');
+    var simulateBtn   = document.getElementById('mjl-simulate-toggle-btn');
     var searchInput = document.getElementById('mjl-log-search');
     var searchBtn   = document.getElementById('mjl-log-search-btn');
     var searchClear = document.getElementById('mjl-log-search-clear');
@@ -216,6 +218,63 @@ window.mjlDebugModeInit = function () {
         var nextBtn = paginator.querySelector('[data-page="next"]');
         if (prevBtn) prevBtn.addEventListener('click', function () { goToPage(currentPage - 1); });
         if (nextBtn) nextBtn.addEventListener('click', function () { goToPage(currentPage + 1); });
+    }
+
+    function updateToggleBtn(btn, enabled, onClass, offClass, onIcon, offIcon) {
+        var icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = 'ti ' + (enabled ? onIcon : offIcon) + ' me-1';
+        }
+        var labelText = enabled
+            ? (btn.dataset.i18nDisable || 'Disable')
+            : (btn.dataset.i18nEnable  || 'Enable');
+        var nodes = btn.childNodes;
+        for (var i = nodes.length - 1; i >= 0; i--) {
+            if (nodes[i].nodeType === 3) { nodes[i].textContent = labelText; break; }
+        }
+        if (enabled) {
+            btn.classList.remove(offClass);
+            btn.classList.add(onClass);
+        } else {
+            btn.classList.remove(onClass);
+            btn.classList.add(offClass);
+        }
+    }
+
+    /* ── Toggle extended log ── */
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+            var fd = new FormData();
+            fd.append('mattermost_ajax', 'toggle_extended_log');
+            fd.append('_glpi_csrf_token', csrfToken);
+            fetch(ajaxUrl, { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.csrf_token) { csrfToken = data.csrf_token; }
+                    if (!data.ok) { return; }
+                    updateToggleBtn(toggleBtn, data.extended_log === 1,
+                        'btn-warning', 'btn-danger', 'ti-toggle-right', 'ti-toggle-left');
+                })
+                .catch(function () {});
+        });
+    }
+
+    /* ── Toggle notify simulation ── */
+    if (simulateBtn) {
+        simulateBtn.addEventListener('click', function () {
+            var fd = new FormData();
+            fd.append('mattermost_ajax', 'toggle_simulate_send');
+            fd.append('_glpi_csrf_token', csrfToken);
+            fetch(ajaxUrl, { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.csrf_token) { csrfToken = data.csrf_token; }
+                    if (!data.ok) { return; }
+                    updateToggleBtn(simulateBtn, data.simulate_send === 1,
+                        'btn-warning', 'btn-danger', 'ti-bell', 'ti-bell-off');
+                })
+                .catch(function () {});
+        });
     }
 
     /* ── Clear log ── */

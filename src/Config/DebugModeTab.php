@@ -35,8 +35,9 @@ class DebugModeTab
 
         global $DB;
 
-        $fields       = $config->fields ?? [];
-        $extended_log = (int) ($fields['extended_log'] ?? 0) === 1;
+        $fields        = $config->fields ?? [];
+        $extended_log  = (int) ($fields['extended_log']  ?? 0) === 1;
+        $simulate_send = (int) ($fields['simulate_send'] ?? 0) === 1;
 
         $log_items = [];
         $table = EventLog::getTable();
@@ -70,8 +71,9 @@ class DebugModeTab
         }
 
         TemplateRenderer::getInstance()->display(self::TEMPLATE, [
-            'config_id'    => (int) ($fields['id'] ?? 1),
-            'extended_log' => $extended_log,
+            'config_id'     => (int) ($fields['id'] ?? 1),
+            'extended_log'  => $extended_log,
+            'simulate_send' => $simulate_send,
             'form_action'  => Toolbox::getItemTypeFormURL(Config::getType()),
             'can_update'   => Config::canCreate(),
             'log_items'    => $log_items,

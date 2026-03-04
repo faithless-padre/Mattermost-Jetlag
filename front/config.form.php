@@ -319,6 +319,48 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'test_webh
     exit;
 }
 
+// ── AJAX: Toggle simulate send ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'toggle_simulate_send') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        global $DB;
+        $cfgTable = Config::getTable();
+        if (!$DB->fieldExists($cfgTable, 'simulate_send')) {
+            $DB->doQuery("ALTER TABLE `$cfgTable` ADD COLUMN `simulate_send` tinyint(1) NOT NULL DEFAULT 0 AFTER `extended_log`");
+        }
+        $cfg = new Config();
+        $cfg->getFromDB(1);
+        $newValue = ((int) ($cfg->fields['simulate_send'] ?? 0)) === 1 ? 0 : 1;
+        $cfg->update(['id' => 1, 'simulate_send' => $newValue]);
+        echo json_encode(['ok' => true, 'simulate_send' => $newValue, 'csrf_token' => Session::getNewCSRFToken()]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage(), 'csrf_token' => Session::getNewCSRFToken()]);
+    }
+    exit;
+}
+
+// ── AJAX: Toggle extended log ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'toggle_extended_log') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        global $DB;
+        $cfg = new Config();
+        $cfg->getFromDB(1);
+        $newValue = ((int) ($cfg->fields['extended_log'] ?? 0)) === 1 ? 0 : 1;
+        $cfg->update(['id' => 1, 'extended_log' => $newValue]);
+        echo json_encode(['ok' => true, 'extended_log' => $newValue, 'csrf_token' => Session::getNewCSRFToken()]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage(), 'csrf_token' => Session::getNewCSRFToken()]);
+    }
+    exit;
+}
+
 // ── AJAX: Clear event log ──
 if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_event_log') {
     Session::checkLoginUser();

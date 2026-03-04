@@ -45,10 +45,6 @@ msgid "Instructions"
 msgstr "Instructions"
 
 #: src/Config.php
-msgid "Self-Test"
-msgstr "Self-Test"
-
-#: src/Config.php
 msgid "Debug Mode"
 msgstr "Debug Mode"
 

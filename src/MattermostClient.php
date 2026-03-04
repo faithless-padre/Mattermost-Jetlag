@@ -37,7 +37,8 @@ class MattermostClient
         string $text,
         ?string $nickname = null,
         ?string $avatar = null,
-        ?string &$error = null
+        ?string &$error = null,
+        ?string &$payloadJson = null
     ): bool {
         $error = null;
 
@@ -84,6 +85,7 @@ class MattermostClient
         }
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $payloadJson = $json !== false ? $json : null;
         if ($json === false) {
             $error = 'Failed to encode JSON payload: ' . json_last_error_msg();
             return false;
@@ -102,6 +104,74 @@ class MattermostClient
             'User-Agent: GLPI-MattermostJetlag-Plugin',
         ]);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+        $responseBody = curl_exec($ch);
+        $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($responseBody === false) {
+            $error = 'cURL error: ' . curl_error($ch);
+            curl_close($ch);
+            return false;
+        }
+
+        curl_close($ch);
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            $error = 'Mattermost responded with HTTP ' . $httpCode . ': ' . $responseBody;
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Send a notification message via Mattermost Incoming Webhook.
+     * Alias for sendTestWebhook() — same signature and behaviour.
+     */
+    public static function send(
+        string $webhookUrl,
+        string $channel,
+        string $text,
+        ?string $nickname = null,
+        ?string $avatar = null,
+        ?string &$error = null,
+        ?string &$payloadJson = null
+    ): bool {
+        return self::sendTestWebhook($webhookUrl, $channel, $text, $nickname, $avatar, $error, $payloadJson);
+    }
+
+    /**
+     * Send a pre-built JSON payload directly to a Mattermost Incoming Webhook.
+     * Used for raw_payload rules where the user controls the full JSON structure.
+     */
+    public static function sendRaw(
+        string $webhookUrl,
+        string $payloadJson,
+        ?string &$error = null
+    ): bool {
+        $error      = null;
+        $webhookUrl = trim($webhookUrl);
+
+        if ($webhookUrl === '' || $payloadJson === '') {
+            $error = 'Webhook URL and payload JSON are required.';
+            return false;
+        }
+
+        if (!function_exists('curl_init')) {
+            $error = 'PHP cURL extension is not available.';
+            return false;
+        }
+
+        $ch = curl_init($webhookUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'User-Agent: GLPI-MattermostJetlag-Plugin',
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payloadJson);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 

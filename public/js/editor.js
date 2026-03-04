@@ -11,9 +11,13 @@ window.mjlEditorInit = function () {
     var defaultRecipient  = root.dataset.defaultRecipient  || '';
     var messagePlaceholder = root.dataset.messagePlaceholder || '';
     var macrosByTarget = {};
+    var macrosExtraByEvent = {};
     var recipientOptionsByTarget = {};
+    var recipientOptionsExtraByEvent = {};
     try { macrosByTarget = JSON.parse(root.dataset.macrosByTarget || '{}'); } catch (e) {}
+    try { macrosExtraByEvent = JSON.parse(root.dataset.macrosExtraByEvent || '{}'); } catch (e) {}
     try { recipientOptionsByTarget = JSON.parse(root.dataset.recipientOptionsByTarget || '{}'); } catch (e) {}
+    try { recipientOptionsExtraByEvent = JSON.parse(root.dataset.recipientOptionsExtraByEvent || '{}'); } catch (e) {}
 
     var ruleNameInput   = document.getElementById('mjl_rule_name');
     var recipientInput  = document.getElementById('mjl_rule_recipient');
@@ -279,18 +283,25 @@ window.mjlEditorInit = function () {
     }
 
     /* ── Macro autocomplete ({ triggers dropdown) ── */
-    function initMacroAutocomplete(inputEl, listEl, getSuggestionsFn, targetSelect) {
+    function initMacroAutocomplete(inputEl, listEl, getSuggestionsFn, targetSelect, eventSelect) {
         if (!inputEl || !listEl) return;
         var selectedIdx = 0;
         var currentTarget = (targetSelect && targetSelect.value) || 'Ticket';
+        var currentEvent  = (eventSelect && eventSelect.value) || '';
 
         function getAllSuggestions() {
-            return getSuggestionsFn(currentTarget);
+            return getSuggestionsFn(currentTarget, currentEvent);
         }
 
         if (targetSelect) {
             targetSelect.addEventListener('change', function () {
                 currentTarget = this.value || 'Ticket';
+                if (listEl.style.display !== 'none') openAc();
+            });
+        }
+        if (eventSelect) {
+            eventSelect.addEventListener('change', function () {
+                currentEvent = this.value || '';
                 if (listEl.style.display !== 'none') openAc();
             });
         }
@@ -329,6 +340,8 @@ window.mjlEditorInit = function () {
             var pos = inputEl.selectionStart;
             var start = val.lastIndexOf('{', pos - 1);
             if (start === -1) return null;
+            // If there's a closing '}' between '{' and cursor, the brace is already closed
+            if (val.substring(start + 1, pos).indexOf('}') !== -1) return null;
             return val.substring(start, pos);
         }
 
@@ -412,28 +425,49 @@ window.mjlEditorInit = function () {
         });
     }
 
-    var targetSelect = document.getElementById('mjl_rule_target');
-    var recipientAc = document.getElementById('mjl_recipient_autocomplete');
-    var messageAc = document.getElementById('mjl_message_autocomplete');
+    var targetSelect   = document.getElementById('mjl_rule_target');
+    var eventSelect    = document.getElementById('mjl_rule_event');
+    var recipientAc    = document.getElementById('mjl_recipient_autocomplete');
+    var messageAc      = document.getElementById('mjl_message_autocomplete');
+    var rawPayloadAc   = document.getElementById('mjl_raw_payload_autocomplete');
 
     initMacroAutocomplete(
         recipientInput,
         recipientAc,
-        function (target) {
-            var opts = recipientOptionsByTarget[target] || recipientOptionsByTarget['Ticket'] || {};
-            return Object.keys(opts).map(function (k) { return '{' + k + '}'; });
+        function (target, event) {
+            var base  = recipientOptionsByTarget[target] || recipientOptionsByTarget['Ticket'] || {};
+            var extra = recipientOptionsExtraByEvent[event] || {};
+            var merged = Object.assign({}, base, extra);
+            return Object.keys(merged).map(function (k) { return '{' + k + '}'; });
         },
-        targetSelect
+        targetSelect,
+        eventSelect
     );
 
     initMacroAutocomplete(
         messageInput,
         messageAc,
-        function (target) {
-            var macros = macrosByTarget[target] || macrosByTarget['Ticket'] || [];
-            return macros.map(function (m) { return '{' + m + '}'; });
+        function (target, event) {
+            var base  = macrosByTarget[target] || macrosByTarget['Ticket'] || [];
+            var extra = macrosExtraByEvent[event] || [];
+            var merged = base.concat(extra.filter(function (m) { return base.indexOf(m) === -1; }));
+            return merged.map(function (m) { return '{' + m + '}'; });
         },
-        targetSelect
+        targetSelect,
+        eventSelect
+    );
+
+    initMacroAutocomplete(
+        rawPayloadTa,
+        rawPayloadAc,
+        function (target, event) {
+            var base  = macrosByTarget[target] || macrosByTarget['Ticket'] || [];
+            var extra = macrosExtraByEvent[event] || [];
+            var merged = base.concat(extra.filter(function (m) { return base.indexOf(m) === -1; }));
+            return merged.map(function (m) { return '{' + m + '}'; });
+        },
+        targetSelect,
+        eventSelect
     );
 
     /* ── Initial state ── */
