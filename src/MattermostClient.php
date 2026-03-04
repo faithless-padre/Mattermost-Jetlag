@@ -149,9 +149,11 @@ class MattermostClient
     public static function sendRaw(
         string $webhookUrl,
         string $payloadJson,
-        ?string &$error = null
+        ?string &$error = null,
+        ?int &$httpCode = null
     ): bool {
         $error      = null;
+        $httpCode   = 0;
         $webhookUrl = trim($webhookUrl);
 
         if ($webhookUrl === '' || $payloadJson === '') {
@@ -176,7 +178,7 @@ class MattermostClient
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
         $responseBody = curl_exec($ch);
-        $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode     = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if ($responseBody === false) {
             $error = 'cURL error: ' . curl_error($ch);
