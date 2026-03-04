@@ -35,7 +35,16 @@
                     <i class="ti ti-trash me-1"></i>{{ __('Delete Selected', 'mattermostjetlag') }}
                 </button>
             </div>
-            <form class="d-flex align-items-center gap-2 ms-auto mjl-search-form" id="mjl-search-form">
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <label for="mjl-import-file" class="btn btn-sm btn-outline-secondary mb-0" style="cursor:pointer;">
+                    <i class="ti ti-file-import me-1"></i>{{ __('Import Rules', 'mattermostjetlag') }}
+                </label>
+                <input type="file" id="mjl-import-file" accept=".json" class="d-none">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="mjl-export-rules-btn">
+                    <i class="ti ti-file-export me-1"></i>{{ __('Export Selected', 'mattermostjetlag') }}
+                </button>
+            </div>
+            <form class="d-flex align-items-center gap-2 mjl-search-form" id="mjl-search-form">
                 <input type="text" name="mjl_search" id="mjl-search-input"
                        value="{{ search|e }}" class="form-control form-control-sm"
                        style="width: 200px;"
@@ -132,6 +141,7 @@
 </div>
 
 <input type="hidden" id="mjl-rules-csrf" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+
 <div class="mjl-rules-list-root"
      data-ajax-url="{{ ajax_url|e('html_attr') }}"
      data-editor-base="{{ editor_add_url|e('html_attr') }}"
@@ -161,7 +171,9 @@
      data-initial-order="{{ order }}"
      data-initial-search="{{ search|e('html_attr') }}"
      data-all-rules="{{ all_rules|json_encode|e('html_attr') }}"
-     data-editor-add-url="{{ editor_add_url|e('html_attr') }}">
+     data-editor-add-url="{{ editor_add_url|e('html_attr') }}"
+     data-i18n-imported="{{ __('Rules imported', 'mattermostjetlag')|e }}"
+     data-i18n-import-failed="{{ __('Import failed', 'mattermostjetlag')|e }}">
 </div>
 <script>
 if (typeof window.mjlRulesListInit === 'function') {

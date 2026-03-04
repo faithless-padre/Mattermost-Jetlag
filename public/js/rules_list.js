@@ -23,7 +23,9 @@ window.mjlRulesListInit = function () {
         filterOn:      root.dataset.i18nFilterOn     || '',
         filterOff:     root.dataset.i18nFilterOff    || '',
         select:        root.dataset.i18nSelect       || '',
-        edit:         root.dataset.i18nEdit          || '',
+        edit:          root.dataset.i18nEdit         || '',
+        imported:      root.dataset.i18nImported     || 'Rules imported',
+        importFailed:  root.dataset.i18nImportFailed || 'Import failed',
     };
 
     var perPage     = parseInt(root.dataset.perPage, 10) || 15;
@@ -378,6 +380,51 @@ window.mjlRulesListInit = function () {
             updatePaginator();
             updateShowMore();
             bindSelectAll();
+        });
+    }
+
+    /* ── Export selected rules ── */
+    var exportBtn = document.getElementById('mjl-export-rules-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            var checked = document.querySelectorAll('.mjl-rule-cb:checked');
+            var ids = Array.prototype.map.call(checked, function (cb) { return cb.value; });
+            if (ids.length === 0) { toast(window.glpi_toast_error, i18n.selectRule); return; }
+
+            var url = ajaxUrl + '&mattermost_ajax=export_rules';
+            ids.forEach(function (id) { url += '&rule_ids[]=' + encodeURIComponent(id); });
+            window.location.href = url;
+        });
+    }
+
+    /* ── Import rules ── */
+    var importFile = document.getElementById('mjl-import-file');
+    if (importFile) {
+        importFile.addEventListener('change', function () {
+            var file = this.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var fd = new FormData();
+                fd.set('mattermost_ajax', 'import_rules');
+                fd.set('rules_json', e.target.result);
+                fd.set('_glpi_csrf_token', getCsrfToken());
+                fetch(ajaxUrl, { method: 'POST', body: fd })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data && data.ok) {
+                            toast(window.glpi_toast_info, i18n.imported + ' (' + (data.created || 0) + ')');
+                            if (rulesListUrl) { window.location.href = rulesListUrl; } else { window.location.reload(); }
+                        } else {
+                            toast(window.glpi_toast_error, (data && data.error) || i18n.importFailed);
+                        }
+                    })
+                    .catch(function () {
+                        toast(window.glpi_toast_error, i18n.importFailed);
+                    });
+            };
+            reader.readAsText(file);
+            this.value = '';
         });
     }
 
