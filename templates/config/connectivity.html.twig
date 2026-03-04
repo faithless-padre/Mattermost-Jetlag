@@ -1,0 +1,189 @@
+{# Connectivity tab — connection settings & test (mirrors old connection.php) #}
+<div class="mjl-tab-content">
+{# ═══════ Section 1: Enter connection details ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-n2">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-plug-connected"></i>
+            </div>
+            {{ __('Enter connection details', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+
+<div class="card border mb-0">
+    <div class="card-body">
+        <div class="alert alert-success mb-3 d-flex align-items-center">
+            <i class="ti ti-book flex-shrink-0 me-2" style="font-size: 1.25rem;" aria-hidden="true"></i>
+            <span>{{ __('Choose the connection type and provide the required data to send messages to Mattermost.', 'mattermostjetlag') }}</span>
+        </div>
+
+        <form id="mattermostjetlag_config_form" name="form" method="post" action="{{ form_action }}">
+            <input type="hidden" name="id" value="{{ config_id }}">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mattermostjetlag-form">
+                {# Connection type #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">{{ __('Connection Type', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <select name="connection_type" id="connection_type_select" class="form-select">
+                            {% for value, label in connection_types %}
+                                <option value="{{ value }}"
+                                    {{ connection_type == value ? ' selected' : '' }}
+                                    {{ value != 'webhook' ? ' disabled' : '' }}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                              data-bs-title="<strong>{{ __('Connection types', 'mattermostjetlag')|e }}</strong><br>{{ __('Webhook: send messages via a Mattermost incoming webhook URL. Login/Password: use Mattermost API with your user credentials.', 'mattermostjetlag')|e }}">?</span>
+                    </div>
+                </div>
+
+                {# Webhook fields #}
+                <div id="mattermostjetlag_block_webhook"
+                     style="{{ connection_type != 'webhook' ? 'display:none;' : '' }}">
+                    <div class="mattermostjetlag-form-row">
+                        <span class="mattermostjetlag-form-label">{{ __('Mattermost Webhook URL', 'mattermostjetlag') }}:</span>
+                        <div class="mattermostjetlag-form-control-cell">
+                            <input type="text" name="webhook_url" id="field_webhook_url"
+                                   class="form-control"
+                                   value="{{ webhook_url|e }}"
+                                   data-placeholder="{{ placeholders.webhook_url|e }}">
+                            <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                  data-bs-title="{{ __('Incoming webhook URL from your Mattermost server. Create it in a channel via Integrations → Incoming Webhooks.', 'mattermostjetlag')|e }}">?</span>
+                        </div>
+                    </div>
+                    <div class="mattermostjetlag-form-row">
+                        <span class="mattermostjetlag-form-label">{{ __('Sender default nickname', 'mattermostjetlag') }}:</span>
+                        <div class="mattermostjetlag-form-control-cell">
+                            <input type="text" name="webhook_bot_nickname" id="field_webhook_bot_nickname"
+                                   class="form-control"
+                                   value="{{ webhook_bot_nickname|e }}"
+                                   data-placeholder="{{ placeholders.bot_nickname|e }}">
+                        </div>
+                    </div>
+                    <div class="mattermostjetlag-form-row">
+                        <span class="mattermostjetlag-form-label">{{ __('Sender default avatar (URL or emoji)', 'mattermostjetlag') }}:</span>
+                        <div class="mattermostjetlag-form-control-cell">
+                            <input type="text" name="webhook_bot_avatar" id="field_webhook_bot_avatar"
+                                   class="form-control"
+                                   value="{{ webhook_bot_avatar|e }}"
+                                   data-placeholder="{{ placeholders.bot_avatar|e }}">
+                            <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                  data-bs-title="{{ __('Avatar URL or emoji (e.g. :robot_face:). Leave empty to use default.', 'mattermostjetlag')|e }}">?</span>
+                        </div>
+                    </div>
+                </div>
+
+                {# Login/password fields #}
+                <div id="mattermostjetlag_block_auth"
+                     style="{{ connection_type != 'login' ? 'display:none;' : '' }}">
+                    <div class="mattermostjetlag-form-row">
+                        <span class="mattermostjetlag-form-label">{{ __('Mattermost API URL', 'mattermostjetlag') }}:</span>
+                        <div class="mattermostjetlag-form-control-cell">
+                            <input type="text" name="mattermost_url" id="field_mattermost_url"
+                                   class="form-control"
+                                   value="{{ mattermost_url|e }}"
+                                   data-placeholder="{{ placeholders.api_url|e }}">
+                            <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                  data-bs-title="{{ __('Base URL of your Mattermost API, for example https://mattermost.example.com/api/v4/', 'mattermostjetlag')|e }}">?</span>
+                        </div>
+                    </div>
+                    <div class="mattermostjetlag-form-row">
+                        <span class="mattermostjetlag-form-label">{{ __('User login', 'mattermostjetlag') }}:</span>
+                        <div class="mattermostjetlag-form-control-cell">
+                            <input type="text" name="mattermost_login" id="field_mattermost_login"
+                                   class="form-control"
+                                   value="{{ mattermost_login|e }}"
+                                   data-placeholder="{{ placeholders.login|e }}">
+                        </div>
+                    </div>
+                    <div class="mattermostjetlag-form-row mattermostjetlag-form-row-hint">
+                        <span class="mattermostjetlag-form-label">{{ __('User Password', 'mattermostjetlag') }}:</span>
+                        <div class="mattermostjetlag-form-control-cell">
+                            <input type="password" name="mattermost_password" id="field_mattermost_password"
+                                   class="form-control" autocomplete="new-password" value="">
+                            <p class="mattermostjetlag-hint">{{ __('When you enter a new password, the previous one will be replaced.', 'mattermostjetlag') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ═══════ Section 2: Test connection ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-3">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-bolt"></i>
+            </div>
+            {{ __('Test connection', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+
+<div class="card border mb-0">
+    <div class="card-body" id="mjl-test-connection-card">
+        <div class="alert alert-success mb-3 d-flex align-items-center">
+            <i class="ti ti-book flex-shrink-0 me-2" style="font-size: 1.25rem;" aria-hidden="true"></i>
+            <span>{{ __('To test the connection, specify the channel name or username with @ symbol and message text.', 'mattermostjetlag') }}</span>
+        </div>
+
+        <div class="mattermostjetlag-form">
+            <div class="mattermostjetlag-form-row">
+                <span class="mattermostjetlag-form-label">{{ __('Channel or username', 'mattermostjetlag') }}:</span>
+                <div class="mattermostjetlag-form-control-cell">
+                    <input type="text" id="field_test_channel" class="form-control"
+                           value="{{ placeholders.test_channel|e }}">
+                    <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                          data-bs-title="{{ __('Channel name (e.g. general) for a channel message, or @username for a direct message.', 'mattermostjetlag')|e }}">?</span>
+                </div>
+            </div>
+            <div class="mattermostjetlag-form-row">
+                <span class="mattermostjetlag-form-label">{{ __('Message Text', 'mattermostjetlag') }}:</span>
+                <div class="mattermostjetlag-form-control-cell">
+                    <input type="text" id="field_test_message" class="form-control"
+                           value="{{ placeholders.test_message|e }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="mattermostjetlag-btn-row">
+            <span id="mattermostjetlag_last_test_status"
+                  class="mattermostjetlag-last-test me-2 {{ last_test.css }}" role="status">
+                <span class="mattermostjetlag-last-test-dot {{ last_test.dot }}"></span>
+                <span class="mattermostjetlag-last-test-text">
+                    {{ __('Last connection test status', 'mattermostjetlag') }}: {{ last_test.label }}
+                    {% if last_test.date %} &middot; {{ last_test.date }}{% endif %}
+                </span>
+            </span>
+            <button type="button" class="btn btn-outline-secondary me-2" name="test_connection">
+                {{ __('Check connection', 'mattermostjetlag') }}
+            </button>
+            <input type="submit" class="btn btn-primary" name="update_config"
+                   value="{{ _x('button', 'Save', 'mattermostjetlag') }}"
+                   form="mattermostjetlag_config_form">
+        </div>
+    </div>
+</div>
+
+<div class="mattermostjetlag-config-connectivity"
+     data-form-action="{{ form_action }}"
+     data-placeholders="{{ placeholders|json_encode|e }}"
+     data-i18n-last-status="{{ __('Last connection test status', 'mattermostjetlag')|e }}"
+     data-i18n-success="{{ __('Success', 'mattermostjetlag')|e }}"
+     data-i18n-failed="{{ __('Failed', 'mattermostjetlag')|e }}">
+</div>
+<script>
+if (typeof window.mattermostjetlagConnectivityInit === 'function') {
+    window.mattermostjetlagConnectivityInit();
+}
+</script>
+</div>

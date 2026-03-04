@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <name>Mattermost Jetlag</name>
+    <key>mattermostjetlag</key>
+    <state>stable</state>
+    <description>
+        <short>
+            <en>Mattermost Jetlag — send GLPI event notifications to Mattermost</en>
+        </short>
+        <long>
+            <en>GLPI plugin for sending event notifications to Mattermost. Author: Faithless Padre.</en>
+        </long>
+    </description>
+    <homepage>https://github.com/faithless-padre</homepage>
+    <authors>
+        <author>Faithless Padre</author>
+    </authors>
+    <versions>
+        <version>
+            <num>0.1.0</num>
+            <compatibility>~11.0.0</compatibility>
+        </version>
+    </versions>
+    <langs>
+        <lang>en_GB</lang>
+        <lang>ru_RU</lang>
+    </langs>
+    <license>MIT</license>
+</root>

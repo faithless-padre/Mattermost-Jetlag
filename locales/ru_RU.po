@@ -1,0 +1,824 @@
+# Mattermost Jetlag plugin - Russian (Russia)
+# Copyright (C) 2025 Faithless Padre
+# This file is distributed under the same license as the Mattermost Jetlag plugin.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Mattermost Jetlag plugin\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-01-01 00:00+0000\n"
+"PO-Revision-Date: 2025-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Russian (Russia)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru_RU\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: src/Config.php
+msgid "Setup"
+msgstr "Настройка"
+
+#: src/Config.php
+msgid "Connectivity"
+msgstr "Подключение"
+
+#: src/Config.php
+msgid "Rules List"
+msgstr "Список правил"
+
+#: src/Config.php
+msgid "Rule Editor"
+msgstr "Редактор правил"
+
+#: src/Config.php
+msgid "Events Journal"
+msgstr "Журнал событий"
+
+#: src/Config.php
+msgid "Variables Override"
+msgstr "Переменные"
+
+#: src/Config.php
+msgid "Instructions"
+msgstr "Инструкции"
+
+#: src/Config.php
+msgid "Self-Test"
+msgstr "Диагностика"
+
+#: src/Config.php
+msgid "Debug Mode"
+msgstr "Отладка"
+
+#: templates/config/debug_mode.html.twig
+msgid "Configuration and viewing of events for debugging"
+msgstr "Настройка и просмотр событий для отладки"
+
+#: templates/config/debug_mode.html.twig
+msgid "Record extended log"
+msgstr "Записывать расширенный лог"
+
+#: front/config.form.php
+msgid "Saved"
+msgstr "Сохранено"
+
+#: front/config.form.php
+msgid "Please activate the plugin"
+msgstr "Пожалуйста, активируйте плагин"
+
+#: front/config.form.php
+msgid "Mattermost Jetlag"
+msgstr "Mattermost Jetlag"
+
+#: templates/config/connectivity.html.twig
+msgid "Enter connection details"
+msgstr "Параметры подключения"
+
+#: templates/config/connectivity.html.twig
+msgid "Choose the connection type and provide the required data to send messages to Mattermost."
+msgstr "Выберите тип подключения и укажите данные для отправки сообщений в Mattermost."
+
+#: templates/config/connectivity.html.twig
+msgid "Connection Type"
+msgstr "Тип подключения"
+
+#: src/Config/ConnectivityTab.php
+msgid "Webhook URL request"
+msgstr "Запрос по Webhook URL"
+
+#: src/Config/ConnectivityTab.php
+msgid "Login / Password connection"
+msgstr "Подключение по логину и паролю"
+
+#: src/Config/ConnectivityTab.php
+msgid "Personal Token"
+msgstr "Персональный токен"
+
+#: templates/config/connectivity.html.twig
+msgid "Mattermost Webhook URL"
+msgstr "URL вебхука Mattermost"
+
+#: templates/config/connectivity.html.twig
+msgid "Sender default nickname"
+msgstr "Никнейм отправителя по умолчанию"
+
+#: templates/config/connectivity.html.twig
+msgid "Sender default avatar (URL or emoji)"
+msgstr "Аватар отправителя по умолчанию (URL или эмодзи)"
+
+#: templates/config/connectivity.html.twig
+msgid "Mattermost API URL"
+msgstr "URL API Mattermost"
+
+#: templates/config/connectivity.html.twig
+msgid "User login"
+msgstr "Логин пользователя"
+
+#: templates/config/connectivity.html.twig
+msgid "User Password"
+msgstr "Пароль пользователя"
+
+#: templates/config/connectivity.html.twig
+msgid "When you enter a new password, the previous one will be replaced."
+msgstr "При вводе нового пароля предыдущий будет заменён."
+
+#: templates/config/connectivity.html.twig
+msgid "Test connection"
+msgstr "Проверка соединения"
+
+#: templates/config/connectivity.html.twig
+msgid "To test the connection, specify the channel name or username with @ symbol and message text."
+msgstr "Для проверки соединения укажите имя канала или пользователя с символом @ и текст сообщения."
+
+#: templates/config/connectivity.html.twig
+msgid "Channel or username"
+msgstr "Канал или имя пользователя"
+
+#: templates/config/connectivity.html.twig
+msgid "Message Text"
+msgstr "Текст сообщения"
+
+#: templates/config/connectivity.html.twig
+msgid "Last connection test status"
+msgstr "Статус последней проверки"
+
+#: templates/config/connectivity.html.twig
+msgid "Check connection"
+msgstr "Проверить соединение"
+
+#: templates/config/connectivity.html.twig
+msgid "Success"
+msgstr "Успешно"
+
+#: templates/config/connectivity.html.twig
+msgid "Failed"
+msgstr "Ошибка"
+
+#: templates/config/connectivity.html.twig
+msgctxt "button"
+msgid "Save"
+msgstr "Сохранить"
+
+#: templates/config/instructions.html.twig
+msgid "Mattermost Configuration"
+msgstr "Настройка Mattermost"
+
+#: templates/config/instructions.html.twig
+msgid "Webhook URL Setup"
+msgstr "Настройка Webhook URL"
+
+#: templates/config/instructions.html.twig
+msgid "Go to your Mattermost server and navigate to the channel where you want to receive notifications."
+msgstr "Перейдите на ваш сервер Mattermost и откройте канал, в который хотите получать уведомления."
+
+#: templates/config/instructions.html.twig
+msgid "Click on the channel name → Integrations → Incoming Webhooks."
+msgstr "Нажмите на название канала → Интеграции → Входящие вебхуки."
+
+#: templates/config/instructions.html.twig
+msgid "Click \"Add Incoming Webhook\" and configure the webhook:"
+msgstr "Нажмите «Добавить входящий вебхук» и настройте его:"
+
+#: templates/config/instructions.html.twig
+msgid "Set a title (e.g., \"GLPI Notifications\")"
+msgstr "Задайте название (напр., «GLPI Notifications»)"
+
+#: templates/config/instructions.html.twig
+msgid "Choose the channel where notifications will be posted"
+msgstr "Выберите канал для публикации уведомлений"
+
+#: templates/config/instructions.html.twig
+msgid "Optionally set a default username and icon"
+msgstr "При желании задайте имя пользователя и иконку по умолчанию"
+
+#: templates/config/instructions.html.twig
+msgid "Copy the webhook URL (it looks like: https://your-mattermost.com/hooks/xxxxx)"
+msgstr "Скопируйте URL вебхука (выглядит как: https://your-mattermost.com/hooks/xxxxx)"
+
+#: templates/config/instructions.html.twig
+msgid "Paste this URL into the \"Mattermost Webhook URL\" field in the Connection tab of this plugin."
+msgstr "Вставьте этот URL в поле «URL вебхука Mattermost» на вкладке Подключение."
+
+#: templates/config/instructions.html.twig
+msgid "Login / Password Authentication"
+msgstr "Аутентификация по логину и паролю"
+
+#: templates/config/instructions.html.twig
+msgid "This method uses Mattermost API with your user credentials. Currently disabled in this plugin version."
+msgstr "Этот метод использует API Mattermost с учётными данными пользователя. В текущей версии плагина отключён."
+
+#: templates/config/instructions.html.twig
+msgid "Note"
+msgstr "Примечание"
+
+#: templates/config/instructions.html.twig
+msgid "When using Login / Password authentication, you cannot override the sender nickname and avatar - messages will be sent from the authenticated Mattermost user account."
+msgstr "При аутентификации по логину и паролю нельзя переопределить никнейм и аватар отправителя — сообщения будут отправлены от имени аутентифицированной учётной записи Mattermost."
+
+#: templates/config/instructions.html.twig
+msgid "Ensure you have a Mattermost user account with appropriate permissions."
+msgstr "Убедитесь, что у вас есть учётная запись Mattermost с необходимыми правами."
+
+#: templates/config/instructions.html.twig
+msgid "The API URL format is: https://your-mattermost.com/api/v4/"
+msgstr "Формат URL API: https://your-mattermost.com/api/v4/"
+
+#: templates/config/instructions.html.twig
+msgid "Enter your Mattermost login credentials in the Connection tab."
+msgstr "Введите учётные данные Mattermost на вкладке Подключение."
+
+#: templates/config/instructions.html.twig
+msgid "Personal Token Authentication"
+msgstr "Аутентификация по персональному токену"
+
+#: templates/config/instructions.html.twig
+msgid "This method uses a personal access token for API authentication. Currently disabled in this plugin version."
+msgstr "Этот метод использует персональный токен доступа для аутентификации через API. В текущей версии плагина отключён."
+
+#: templates/config/instructions.html.twig
+msgid "Log in to your Mattermost account."
+msgstr "Войдите в свою учётную запись Mattermost."
+
+#: templates/config/instructions.html.twig
+msgid "Go to Account Settings → Security → Personal Access Tokens."
+msgstr "Перейдите в Настройки аккаунта → Безопасность → Персональные токены доступа."
+
+#: templates/config/instructions.html.twig
+msgid "Click \"Create Token\" and give it a description (e.g., \"GLPI Plugin\")."
+msgstr "Нажмите «Создать токен» и задайте описание (напр., «GLPI Plugin»)."
+
+#: templates/config/instructions.html.twig
+msgid "Copy the generated token immediately (it will not be shown again)."
+msgstr "Сразу скопируйте сгенерированный токен (он больше не будет показан)."
+
+#: templates/config/instructions.html.twig
+msgid "Use this token in the Connection tab when Personal Token option becomes available."
+msgstr "Используйте этот токен на вкладке Подключение, когда опция персонального токена станет доступна."
+
+#: templates/config/instructions.html.twig
+msgid "Plugin Configuration"
+msgstr "Настройка плагина"
+
+#: templates/config/instructions.html.twig
+msgid "Connection Setup"
+msgstr "Настройка подключения"
+
+#: templates/config/instructions.html.twig
+msgid "Go to the Connection tab."
+msgstr "Перейдите на вкладку Подключение."
+
+#: templates/config/instructions.html.twig
+msgid "Select \"Webhook URL request\" as the connection type."
+msgstr "Выберите «Запрос по Webhook URL» в качестве типа подключения."
+
+#: templates/config/instructions.html.twig
+msgid "Enter your Mattermost Webhook URL in the \"Mattermost Webhook URL\" field."
+msgstr "Введите URL вебхука Mattermost в поле «URL вебхука Mattermost»."
+
+#: templates/config/instructions.html.twig
+msgid "Optionally set \"Sender default nickname\" (e.g., \"GLPI Bot\") and \"Sender default avatar\" (emoji like :robot_face: or image URL)."
+msgstr "При желании задайте «Никнейм отправителя» (напр., «GLPI Bot») и «Аватар отправителя» (эмодзи вроде :robot_face: или URL изображения)."
+
+#: templates/config/instructions.html.twig
+msgid "Click \"Save\" to store the connection settings."
+msgstr "Нажмите «Сохранить» для сохранения настроек подключения."
+
+#: templates/config/instructions.html.twig
+msgid "Creating Notification Rules"
+msgstr "Создание правил уведомлений"
+
+#: templates/config/instructions.html.twig
+msgid "Go to the Editor tab."
+msgstr "Перейдите на вкладку Редактор правил."
+
+#: templates/config/instructions.html.twig
+msgid "Fill in the required fields:"
+msgstr "Заполните обязательные поля:"
+
+#: templates/config/instructions.html.twig
+msgid "Rule name"
+msgstr "Название правила"
+
+#: templates/config/instructions.html.twig
+msgid "A descriptive name for your rule (must differ from the default)"
+msgstr "Описательное название правила (должно отличаться от значения по умолчанию)"
+
+#: templates/config/instructions.html.twig
+msgid "Target"
+msgstr "Объект"
+
+#: templates/config/instructions.html.twig
+msgid "The entity type (Ticket or Approve)"
+msgstr "Тип объекта (Заявка)"
+
+#: templates/config/instructions.html.twig
+msgid "Event Type"
+msgstr "Тип события"
+
+#: templates/config/instructions.html.twig
+msgid "When to trigger (New, Update, or Delete)"
+msgstr "Когда срабатывать (Создание, Обновление, Отправка на согласование, Изменение участников)"
+
+#: templates/config/instructions.html.twig
+msgid "Recipient list"
+msgstr "Список получателей"
+
+#: templates/config/instructions.html.twig
+msgid "Comma-separated list of channels/users (e.g., username for direct message, @channel-name for channel, {requester})"
+msgstr "Список каналов/пользователей через запятую (напр., username для личного сообщения, @channel-name для канала, {requester})"
+
+#: templates/config/instructions.html.twig
+msgid "Message template"
+msgstr "Шаблон сообщения"
+
+#: templates/config/instructions.html.twig
+msgid "The message to send. Use {macros} for dynamic values (type { to see available options)"
+msgstr "Текст сообщения. Используйте {макросы} для динамических значений (введите { для просмотра доступных вариантов)"
+
+#: templates/config/instructions.html.twig
+msgid "Set \"Rule status\" to Active or Disable."
+msgstr "Установите «Статус правила» — Активно или Отключено."
+
+#: templates/config/instructions.html.twig
+msgid "Optionally enable \"Override Mattermost Payload\" to send custom JSON payload."
+msgstr "При необходимости включите «Переопределение Mattermost Payload» для отправки произвольного JSON."
+
+#: templates/config/instructions.html.twig
+msgid "Click \"Save\" to create the rule."
+msgstr "Нажмите «Сохранить» для создания правила."
+
+#: templates/config/instructions.html.twig
+msgid "Managing Rules"
+msgstr "Управление правилами"
+
+#: templates/config/instructions.html.twig
+msgid "View all your notification rules, sort by columns, search, and perform bulk actions (enable/disable/delete)."
+msgstr "Просматривайте все правила уведомлений, сортируйте по столбцам, ищите и выполняйте массовые действия (включить/отключить/удалить)."
+
+#: templates/config/instructions.html.twig
+msgid "Editing Rules"
+msgstr "Редактирование правил"
+
+#: templates/config/instructions.html.twig
+msgid "Click the pencil icon next to any rule to edit it. After saving a rule, you can set an Extended Filter to limit when the rule triggers."
+msgstr "Нажмите на значок карандаша рядом с правилом для редактирования. После сохранения правила можно настроить расширенный фильтр для ограничения срабатывания."
+
+#: templates/config/instructions.html.twig
+msgid "Extended Filter"
+msgstr "Расширенный фильтр"
+
+#: templates/config/instructions.html.twig
+msgid "Use the Extended Filter section to add conditions (e.g., only trigger for tickets with specific priority or status)."
+msgstr "Используйте раздел «Расширенный фильтр» для добавления условий (напр., срабатывать только для заявок с определённым приоритетом или статусом)."
+
+#: templates/config/instructions.html.twig
+msgid "Message Templates"
+msgstr "Шаблоны сообщений"
+
+#: templates/config/instructions.html.twig
+msgid "You can use the following macros in your message templates:"
+msgstr "В шаблонах сообщений можно использовать следующие макросы:"
+
+#: templates/config/instructions.html.twig
+msgid "Ticket/Item ID"
+msgstr "ID заявки/объекта"
+
+#: templates/config/instructions.html.twig
+msgid "Ticket/Item title"
+msgstr "Название заявки/объекта"
+
+#: templates/config/instructions.html.twig
+msgid "Current status"
+msgstr "Текущий статус"
+
+#: templates/config/instructions.html.twig
+msgid "Priority level"
+msgstr "Уровень приоритета"
+
+#: templates/config/instructions.html.twig
+msgid "Requester username"
+msgstr "Имя инициатора"
+
+#: templates/config/instructions.html.twig
+msgid "Assigned user"
+msgstr "Назначенный пользователь"
+
+#: templates/config/instructions.html.twig
+msgid "Direct link to the item"
+msgstr "Прямая ссылка на объект"
+
+#: templates/config/instructions.html.twig
+msgid "And more... Type { in the message field to see all available macros for your selected Target."
+msgstr "И другие... Введите { в поле сообщения для просмотра всех доступных макросов для выбранного объекта."
+
+#: templates/config/instructions.html.twig
+msgid "Tip"
+msgstr "Совет"
+
+#: templates/config/instructions.html.twig
+msgid "You can use Markdown formatting in your messages. The autocomplete feature (type {) helps you insert macros correctly."
+msgstr "В сообщениях можно использовать форматирование Markdown. Автодополнение (введите {) поможет правильно вставить макросы."
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Connection types"
+msgstr "Типы подключения"
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Webhook: send messages via a Mattermost incoming webhook URL. Login/Password: use Mattermost API with your user credentials."
+msgstr "Webhook: отправка сообщений через URL входящего вебхука Mattermost. Логин/Пароль: использование API Mattermost с учётными данными пользователя."
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Incoming webhook URL from your Mattermost server. Create it in a channel via Integrations → Incoming Webhooks."
+msgstr "URL входящего вебхука вашего сервера Mattermost. Создайте его в канале через Интеграции → Входящие вебхуки."
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Sender default avatar"
+msgstr "Аватар отправителя по умолчанию"
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Avatar URL or emoji (e.g. :robot_face:). Leave empty to use default."
+msgstr "URL аватара или эмодзи (напр. :robot_face:). Оставьте пустым для значения по умолчанию."
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Base URL of your Mattermost API, for example https://mattermost.example.com/api/v4/"
+msgstr "Базовый URL API Mattermost, например https://mattermost.example.com/api/v4/"
+
+#: templates/config/connectivity.html.twig (help tooltip)
+msgid "Channel name (e.g. general) for a channel message, or @username for a direct message."
+msgstr "Имя канала (напр. general) для сообщения в канал, или @username для личного сообщения."
+
+#: templates/config/rules_list.html.twig
+msgid "Add new rule"
+msgstr "Добавить правило"
+
+#: templates/config/rules_list.html.twig
+msgid "Disable Selected"
+msgstr "Отключить выбранные"
+
+#: templates/config/rules_list.html.twig
+msgid "Enable Selected"
+msgstr "Включить выбранные"
+
+#: templates/config/rules_list.html.twig
+msgid "Clone Selected"
+msgstr "Клонировать выбранные"
+
+#: templates/config/rules_list.html.twig
+msgid "Delete Selected"
+msgstr "Удалить выбранные"
+
+#: templates/config/rules_list.html.twig
+msgid "Search"
+msgstr "Поиск"
+
+#: templates/config/rules_list.html.twig
+msgid "Select all"
+msgstr "Выбрать все"
+
+#: templates/config/rules_list.html.twig
+msgid "Select"
+msgstr "Выбрать"
+
+#: templates/config/rules_list.html.twig
+msgid "Edit"
+msgstr "Редактировать"
+
+#: templates/config/rules_list.html.twig
+msgid "No rules match your search."
+msgstr "Нет правил, соответствующих вашему поиску."
+
+#: templates/config/rules_list.html.twig
+msgid "No notification rules yet."
+msgstr "Правила уведомлений ещё не созданы."
+
+#: templates/config/rules_list.html.twig
+msgid "Raw payload enabled"
+msgstr "Raw payload включён"
+
+#: templates/config/rules_list.html.twig
+msgid "Raw payload disabled"
+msgstr "Raw payload отключён"
+
+#: templates/config/rules_list.html.twig
+msgid "Extended filter is set"
+msgstr "Расширенный фильтр задан"
+
+#: templates/config/rules_list.html.twig
+msgid "No extended filter"
+msgstr "Нет расширенного фильтра"
+
+#: templates/config/rules_list.html.twig
+msgid "Yes"
+msgstr "Да"
+
+#: templates/config/rules_list.html.twig
+msgid "No"
+msgstr "Нет"
+
+#: templates/config/rules_list.html.twig
+msgid "Previous"
+msgstr "Назад"
+
+#: templates/config/rules_list.html.twig
+msgid "Next"
+msgstr "Далее"
+
+#: templates/config/rules_list.html.twig
+msgid "Select at least one rule."
+msgstr "Выберите хотя бы одно правило."
+
+#: templates/config/rules_list.html.twig
+msgid "Select only one rule."
+msgstr "Выберите только одно правило."
+
+#: templates/config/rules_list.html.twig
+msgid "Delete selected rules?"
+msgstr "Удалить выбранные правила?"
+
+#: templates/config/rules_list.html.twig
+msgid "Rule cloned"
+msgstr "Правило клонировано"
+
+#: templates/config/rules_list.html.twig
+msgid "Rules updated"
+msgstr "Правила обновлены"
+
+#: templates/config/rules_list.html.twig
+msgid "Rules deleted"
+msgstr "Правила удалены"
+
+#: front/config.form.php
+msgid "Clone of"
+msgstr "Копия"
+
+#: src/Config/RulesListTab.php
+msgid "Event"
+msgstr "Событие"
+
+#: src/Config/RulesListTab.php
+msgid "Recipient"
+msgstr "Получатель"
+
+#: src/Config/RulesListTab.php
+msgid "Raw"
+msgstr "Raw"
+
+#: src/Config/RulesListTab.php
+msgid "Filtering"
+msgstr "Фильтрация"
+
+#: src/Config/RulesListTab.php
+msgid "Creation date"
+msgstr "Дата создания"
+
+#: src/Config/RulesListTab.php
+msgid "Active"
+msgstr "Активно"
+
+#: templates/config/editor.html.twig
+msgid "Save the rule below first. You will then be able to set an extended filter for this rule in the editor."
+msgstr "Сначала сохраните правило ниже. После этого вы сможете настроить расширенный фильтр в редакторе."
+
+#: templates/config/editor.html.twig
+msgid "Use the filter builder below to limit when this rule triggers."
+msgstr "Используйте конструктор фильтров ниже, чтобы ограничить срабатывание правила."
+
+#: templates/config/editor.html.twig
+msgid "Edit existing rule"
+msgstr "Редактирование правила"
+
+#: templates/config/editor.html.twig
+msgid "Add new rule details"
+msgstr "Добавление нового правила"
+
+#: templates/config/editor.html.twig (form-help)
+msgid "Choose a clear, descriptive name that will be displayed in the rules list. Must differ from the default placeholder."
+msgstr "Укажите понятное, описательное имя, которое будет отображаться в списке правил. Должно отличаться от значения по умолчанию."
+
+#: templates/config/editor.html.twig (form-help)
+msgid "The entity type to monitor. Currently only Ticket is supported."
+msgstr "Тип объекта для мониторинга. В данный момент поддерживается только Заявка."
+
+#: templates/config/editor.html.twig (form-help)
+msgid "The message text to send to Mattermost. Use {macros} for dynamic values (e.g. {id}, {title}, {requester}). Type { to see available options for the selected Target. Markdown is supported."
+msgstr "Текст сообщения для отправки в Mattermost. Используйте {макросы} для подстановки (напр. {id}, {title}, {requester}). Введите { для просмотра доступных вариантов выбранного Target. Поддерживается Markdown."
+
+#: templates/config/editor.html.twig
+msgid "Rule status"
+msgstr "Статус правила"
+
+#: templates/config/editor.html.twig
+msgid "Override Mattermost Payload"
+msgstr "Переопределение Mattermost Payload"
+
+#: templates/config/editor.html.twig
+msgid "Disabled"
+msgstr "Отключено"
+
+#: templates/config/editor.html.twig
+msgid "Enabled"
+msgstr "Включено"
+
+#: templates/config/editor.html.twig
+msgid "Override Payload (JSON)"
+msgstr "Переопределённый Payload (JSON)"
+
+#: templates/config/editor.html.twig
+msgid "To clarify the Mattermost Payload structure, refer to the developer documentation:"
+msgstr "Для уточнения структуры Mattermost Payload обратитесь к документации для разработчиков:"
+
+#: templates/config/editor.html.twig
+msgid "Cancel"
+msgstr "Отмена"
+
+#: src/Config/EditorTab.php
+msgid "Ticket"
+msgstr "Заявка"
+
+#: src/Config/EditorTab.php
+msgid "Create"
+msgstr "Создание"
+
+#: src/Config/EditorTab.php
+msgid "Add Comment"
+msgstr "Добавление комментария"
+
+#: src/Config/EditorTab.php
+msgid "Send for Approval"
+msgstr "Отправка на согласование"
+
+#: src/Config/EditorTab.php
+msgid "Approval Granted"
+msgstr "Согласовано"
+
+#: src/Config/EditorTab.php
+msgid "Approval Rejected"
+msgstr "Отклонено"
+
+#: src/Config/EditorTab.php
+msgid "Status changed"
+msgstr "Изменение статуса"
+
+#: src/Config/EditorTab.php
+msgid "Members Changed"
+msgstr "Изменение участников"
+
+#: src/Config/EditorTab.php
+msgid "Disable"
+msgstr "Отключено"
+
+#: templates/config/rules_list.html.twig (delete confirm dialog)
+msgctxt "button"
+msgid "Delete"
+msgstr "Удалить"
+
+#: templates/config/rules_list.html.twig (delete confirm dialog)
+msgctxt "button"
+msgid "Cancel"
+msgstr "Отмена"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Bold"
+msgstr "Жирный"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Italic"
+msgstr "Курсив"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Strikethrough"
+msgstr "Зачёркнутый"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Heading"
+msgstr "Заголовок"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Link"
+msgstr "Ссылка"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Code"
+msgstr "Код"
+
+#: templates/config/editor.html.twig (toolbar)
+msgctxt "formatting"
+msgid "Quote"
+msgstr "Цитата"
+
+#: templates/config/editor.html.twig (toolbar)
+msgid "Resize"
+msgstr "Изменить размер"
+
+#: templates/config/rules_list.html.twig
+#: templates/config/debug_mode.html.twig
+msgid "Show more"
+msgstr "Показать ещё"
+
+#: templates/config/debug_mode.html.twig
+msgid "Event log"
+msgstr "Журнал событий"
+
+#: templates/config/debug_mode.html.twig
+msgid "Clear log"
+msgstr "Очистить лог"
+
+#: templates/config/debug_mode.html.twig
+msgid "Event log rotation: only the 500 most recent events are kept. Older entries are removed automatically."
+msgstr "Ротация журнала: хранятся только 500 последних событий. Более старые записи удаляются автоматически."
+
+#: templates/config/debug_mode.html.twig
+msgid "No events recorded yet."
+msgstr "Событий пока нет."
+
+#: templates/config/debug_mode.html.twig
+msgid "Log cleared."
+msgstr "Лог очищен."
+
+#: templates/config/rules_list.html.twig
+msgid "Page"
+msgstr "Страница"
+
+#: src/NotificationRule.php
+msgid "Notification rules"
+msgstr "Правила уведомлений"
+
+#: src/NotificationRule.php
+msgid "Notification rule"
+msgstr "Правило уведомления"
+
+#: src/NotificationRule.php
+msgid "Filter for this rule"
+msgstr "Фильтр для этого правила"
+
+#: src/NotificationRule.php
+msgid "Only items matching this filter will trigger the notification."
+msgstr "Уведомление отправляется только для элементов, соответствующих этому фильтру."
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Filter saved"
+msgstr "Фильтр сохранён"
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Unable to save filter"
+msgstr "Не удалось сохранить фильтр"
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Preview result"
+msgstr "Результат превью"
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Hide preview"
+msgstr "Скрыть превью"
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Show preview"
+msgstr "Показать превью"
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Delete filter"
+msgstr "Удалить фильтр"
+
+#: templates/config/editor.html.twig (Extended Filter)
+msgid "Failed to delete filter"
+msgstr "Не удалось удалить фильтр"
+
+#: front/config.form.php
+msgid "Rule saved"
+msgstr "Правило сохранено"
+
+#: front/config.form.php
+msgid "Unable to create rule"
+msgstr "Не удалось создать правило"
+
+#: templates/config/debug_mode.html.twig
+msgid "Date"
+msgstr "Дата"
+
+#: templates/config/debug_mode.html.twig
+msgid "Ticket"
+msgstr "Заявка"
+
+#: templates/config/debug_mode.html.twig
+msgid "Ticket #"
+msgstr "Заявка №"
+
+#: src/Config/EditorTab.php
+msgid "Add Solution"
+msgstr "Добавление решения"
+
+#: src/Config/EditorTab.php
+msgid "Solution Approved"
+msgstr "Решение принято"
+
+#: src/Config/EditorTab.php
+msgid "Solution Rejected"
+msgstr "Решение отклонено"

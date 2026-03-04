@@ -1,0 +1,139 @@
+{# Debug Mode tab — extended log settings + event log viewer #}
+<div class="mjl-tab-content">
+{# ═══════ Section header ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-n2">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-bug"></i>
+            </div>
+            {{ __('Debug Mode', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+
+{# ═══════ Extended log setting ═══════ #}
+<div class="mjl-log-card card border mb-3">
+    <div class="card-body">
+        <div class="alert alert-success mb-3 d-flex align-items-center">
+            <i class="ti ti-book flex-shrink-0 me-2" style="font-size: 1.25rem;" aria-hidden="true"></i>
+            <span>{{ __('Configuration and viewing of events for debugging', 'mattermostjetlag') }}</span>
+        </div>
+        <form method="post" action="{{ form_action }}">
+            <input type="hidden" name="id" value="{{ config_id }}">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="update_debug_config" value="1">
+
+            <div class="mattermostjetlag-form">
+                <div class="mattermostjetlag-form-row" style="align-items: center;">
+                    <span class="mattermostjetlag-form-label">{{ __('Record extended log', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <select name="extended_log" id="mjl_extended_log" class="form-select"
+                                {{ can_update ? '' : 'disabled' }}>
+                            <option value="0" {{ not extended_log ? 'selected' : '' }}>{{ __('Disabled', 'mattermostjetlag') }}</option>
+                            <option value="1" {{ extended_log ? 'selected' : '' }}>{{ __('Enabled', 'mattermostjetlag') }}</option>
+                        </select>
+                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                              data-bs-title="{{ __('Event log rotation: only the 500 most recent events are kept. Older entries are removed automatically.', 'mattermostjetlag')|e }}">?</span>
+                        {% if can_update %}
+                        <input type="submit" class="btn btn-primary ms-auto" value="{{ _x('button', 'Save', 'mattermostjetlag') }}">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ═══════ Event log viewer ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-list-details"></i>
+            </div>
+            {{ __('Event log', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+{# ═══════ Search toolbar ═══════ #}
+<div class="mjl-rules-toolbar card border mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            {% if can_update %}
+            <button type="button" id="mjl-log-clear-btn" class="btn btn-sm btn-outline-danger">
+                <i class="ti ti-trash me-1"></i>{{ __('Clear log', 'mattermostjetlag') }}
+            </button>
+            {% endif %}
+            <form class="d-flex align-items-center gap-2 ms-auto" id="mjl-log-search-form">
+                <input type="text" id="mjl-log-search" class="form-control form-control-sm"
+                       style="width: 200px;"
+                       placeholder="{{ __('Ticket #', 'mattermostjetlag') }}">
+                <button type="button" id="mjl-log-search-btn" class="btn btn-sm btn-primary">
+                    <i class="ti ti-search me-1"></i>{{ __('Search', 'mattermostjetlag') }}
+                </button>
+                <button type="button" id="mjl-log-search-clear" class="btn btn-sm btn-outline-secondary">
+                    <i class="ti ti-x"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="mjl-log-card card border mb-0">
+    <div class="card-body">
+
+        <div id="mjl-log-list"
+             class="mjl-log-list mjl-log-list-root"
+             data-logs="{{ log_items_json|e('html_attr') }}"
+             data-ajax-url="{{ ajax_url|e('html_attr') }}"
+             data-csrf-token="{{ csrf_token() }}"
+             data-i18n-no-logs="{{ __('No events recorded yet.', 'mattermostjetlag')|e }}"
+             data-i18n-cleared="{{ __('Log cleared.', 'mattermostjetlag')|e }}"
+             data-i18n-ticket="#">
+            {# Header row #}
+            <div class="mjl-log-header">
+                <span>ID</span>
+                <span>{{ __('Target', 'mattermostjetlag') }}</span>
+                <span>{{ __('Event', 'mattermostjetlag') }}</span>
+                <span>{{ __('Status', 'mattermostjetlag') }}</span>
+                <span>{{ __('Type', 'mattermostjetlag') }}</span>
+                <span>{{ __('Urgency', 'mattermostjetlag') }}</span>
+                <span>{{ __('Priority', 'mattermostjetlag') }}</span>
+                <span>{{ __('Ticket', 'mattermostjetlag') }} #</span>
+                <span>{{ __('Rules', 'mattermostjetlag') }}</span>
+                <span>{{ __('Date', 'mattermostjetlag') }}</span>
+                <span></span>
+            </div>
+            {# Rows rendered by JS #}
+        </div>
+
+        <div class="mjl-log-footer">
+            <div class="mjl-log-footer-center">
+                <button id="mjl-log-show-more" type="button" class="btn btn-sm btn-outline-secondary" style="display:none;">
+                    {{ __('Show more', 'mattermostjetlag') }}
+                </button>
+            </div>
+            <div class="mjl-log-footer-right">
+                <div class="mjl-paginator mjl-log-paginator">
+                    <button type="button" class="mjl-page-link" data-page="prev" title="{{ __('Previous', 'mattermostjetlag') }}">
+                        <i class="ti ti-chevron-left"></i>
+                    </button>
+                    {# page number buttons injected by JS #}
+                    <button type="button" class="mjl-page-link" data-page="next" title="{{ __('Next', 'mattermostjetlag') }}">
+                        <i class="ti ti-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+if (typeof window.mjlDebugModeInit === 'function') {
+    window.mjlDebugModeInit();
+}
+</script>
+</div>

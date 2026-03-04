@@ -1,0 +1,162 @@
+/**
+ * Rule Editor tab — form styles, validation, raw payload, message wrap.
+ */
+
+/* ---- Match search block horizontal padding for Edit rule, Raw payload, Buttons ----
+ * Search block = card-body + inner .container. Extended Filter unchanged. */
+.mjl-tab-content #mjl_editor_form .card .card-body,
+.mjl-tab-content #mjl_editor_form > .mt-3.mb-2 {
+    padding-left: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
+    padding-right: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
+}
+
+/* ---- Hide CriteriaFilter info block wrapper (title/description empty but div remains) ---- */
+.mjl-extended-filter-card [class*="filterable-info"],
+.mjl-extended-filter-card .card-subtitle,
+.mjl-extended-filter-card .text-muted.form-text:first-of-type,
+.mjl-extended-filter-card .search-container .alert.alert-info,
+.mjl-extended-filter-card .alert.alert-info.mt-1 {
+    display: none !important;
+}
+
+/* ---- Hide Preview h2 header (empty line between filter and results list) ---- */
+.mjl-extended-filter-card #criteria_filter_preview > h2 {
+    display: none !important;
+}
+
+/* ---- Hide preview block when user clicks "Hide preview" ---- */
+.mjl-extended-filter-card #criteria_filter_preview.mjl-preview-hidden {
+    display: none !important;
+}
+
+/* ---- Required field star ---- */
+.mjl-required-star { color: var(--tblr-danger, #d63939); }
+
+/* ---- Validation borders ---- */
+#mjl_rule_name.mjl-field-invalid,
+#mjl_rule_recipient.mjl-field-invalid,
+.mjl-message-editor-wrap.mjl-field-invalid {
+    border: 2px solid rgba(220, 53, 69, 0.55) !important;
+}
+
+/* ---- Raw payload select width ---- */
+#mjl_use_raw_payload { width: 100%; max-width: 486px; }
+
+/* ---- Raw payload textarea ---- */
+.mjl-monospace {
+    width: 100%;
+    max-width: 486px;
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace;
+    font-size: 0.875rem;
+}
+#mjl_raw_payload.mjl-raw-valid { border: 2px solid rgba(47, 179, 68, 0.7); }
+#mjl_raw_payload.mjl-raw-invalid { border: 2px solid rgba(220, 53, 69, 0.55); }
+
+/* ---- Message editor wrap + toolbar (Mattermost style) ---- */
+.mjl-message-editor-wrap {
+    width: 100%;
+    max-width: 486px;
+    border: 1px solid var(--tblr-border-color, #dee2e6);
+    border-radius: var(--tblr-border-radius, 0.375rem);
+    overflow: hidden;
+    background: var(--tblr-bg-surface, #fff);
+}
+.mjl-message-editor-wrap #mjl_rule_message {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    resize: none;
+    min-height: 80px;
+    max-height: 400px;
+    background: var(--tblr-bg-surface, #fff);
+    color: var(--tblr-body-color, #212529);
+}
+.mjl-message-editor-wrap #mjl_rule_message:focus { outline: none; }
+
+.mjl-msg-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 6px 8px;
+    background: var(--tblr-bg-surface-tertiary, rgba(0, 0, 0, 0.04));
+    border-top: 1px solid var(--tblr-border-color, #dee2e6);
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+.mjl-msg-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    color: var(--tblr-body-color, #495057);
+    font-size: 0;
+}
+.mjl-msg-toolbar button i.ti {
+    font-size: 16px;
+}
+.mjl-msg-toolbar button:hover {
+    background: var(--tblr-bg-surface-tertiary, rgba(0, 0, 0, 0.06));
+    color: var(--tblr-body-color, #212529);
+}
+.mjl-msg-toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+.mjl-msg-toolbar-sep {
+    width: 1px;
+    height: 16px;
+    background: var(--tblr-border-color, #dee2e6);
+    margin: 0 2px;
+    flex-shrink: 0;
+}
+.mjl-msg-resize-grip {
+    margin-left: auto;
+    padding: 2px 4px;
+    cursor: nwse-resize;
+    color: var(--tblr-muted, #adb5bd);
+    flex-shrink: 0;
+    user-select: none;
+}
+.mjl-msg-resize-grip:hover { color: var(--tblr-body-color, #495057); }
+.mjl-msg-resize-grip i.ti {
+    font-size: 12px;
+    display: block;
+}
+
+/* ---- Macro autocomplete (Recipient + Message) ---- */
+.mjl-ac-list {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    padding: 2px 0;
+    background: var(--tblr-bg-surface, #fff);
+    border: 1px solid var(--tblr-border-color, #dee2e6);
+    border-radius: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 160px;
+    font-size: 0.8rem;
+    font-family: var(--glpi-monospace-font, ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace);
+    color: var(--tblr-body-color, #212529);
+}
+.mjl-ac-list .mjl-ac-item {
+    padding: 4px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--tblr-body-color, #212529);
+}
+.mjl-ac-list .mjl-ac-item:hover {
+    background: var(--tblr-bg-surface-tertiary, rgba(0, 0, 0, 0.06));
+}
+.mjl-ac-list .mjl-ac-item.active {
+    background: var(--tblr-primary, #206bc4);
+    color: var(--tblr-primary-fg, #fff);
+}

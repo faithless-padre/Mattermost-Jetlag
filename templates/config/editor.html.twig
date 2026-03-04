@@ -1,0 +1,334 @@
+{# Rule Editor tab — add/edit a notification rule #}
+<div class="mjl-tab-content">
+{# ═══════ Section 1: Extended Filter ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-n2">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-adjustments-horizontal"></i>
+            </div>
+            {{ __('Extended Filter', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+<div class="card border">
+    <div class="card-body{% if editing and extended_filter_html %} mjl-extended-filter-card{% endif %}"
+         {% if editing and extended_filter_html %}data-mjl-rule-id="{{ rule_id }}"
+         data-mjl-save-filter-url="{{ save_filter_url|e }}"{% endif %}>
+        {% if editing and extended_filter_html %}
+            {{ extended_filter_html|raw }}
+        {% else %}
+            <p class="text-muted mb-0">
+                {{ __('Save the rule below first. You will then be able to set an extended filter for this rule in the editor.', 'mattermostjetlag') }}
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+{# ═══════ Section 2: Rule details form ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-3">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-message"></i>
+            </div>
+            {% if editing %}
+                {{ __('Edit existing rule', 'mattermostjetlag') }}
+            {% else %}
+                {{ __('Add new rule details', 'mattermostjetlag') }}
+            {% endif %}
+        </h4>
+    </div>
+</div>
+
+<form id="mjl_editor_form" method="post">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    {% if editing %}
+        <input type="hidden" name="update_notification_rule" value="1">
+        <input type="hidden" name="rule_id" value="{{ rule_id }}">
+    {% else %}
+        <input type="hidden" name="add_notification_rule" value="1">
+    {% endif %}
+
+    <div class="card border">
+        <div class="card-body">
+            <div class="mattermostjetlag-form">
+                {# Rule name #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">{{ __('Rule name', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <input type="text" name="rule_name" id="mjl_rule_name"
+                               class="form-control" autocomplete="off"
+                               value="{{ rule.name|default(default_rule_name)|e }}"
+                               data-placeholder="{{ default_rule_name|e }}">
+                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                              data-bs-title="{{ __('Choose a clear, descriptive name that will be displayed in the rules list. Must differ from the default placeholder.', 'mattermostjetlag')|e }}">?</span>
+                    </div>
+                </div>
+
+                {# Target #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">{{ __('Target', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <select name="rule_target" id="mjl_rule_target" class="form-select">
+                            {% for value, label in targets %}
+                                <option value="{{ value }}" {{ (rule.target|default('Ticket')) == value ? 'selected' : '' }}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                              data-bs-title="{{ __('The entity type to monitor. Currently only Ticket is supported.', 'mattermostjetlag')|e }}">?</span>
+                    </div>
+                </div>
+
+                {# Event Type #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">{{ __('Event Type', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <select name="rule_event" id="mjl_rule_event" class="form-select">
+                            {% for value, label in events %}
+                                <option value="{{ value }}" {{ (rule.event|default('create')) == value ? 'selected' : '' }}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                {# Recipient list #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">
+                        {{ __('Recipient list', 'mattermostjetlag') }}: <span class="mjl-required-star">*</span>
+                    </span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <div class="mjl-recipient-autocomplete-wrap" style="position: relative; width: 100%; max-width: 486px;">
+                            <input type="text" name="rule_recipient" id="mjl_rule_recipient"
+                                   class="form-control" autocomplete="off"
+                                   value="{{ rule.recipient|default(default_recipient)|e }}"
+                                   data-placeholder="{{ default_recipient|e }}">
+                            <div id="mjl_recipient_autocomplete" class="mjl-ac-list" aria-hidden="true"></div>
+                        </div>
+                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                              data-bs-title="{{ __('Comma-separated list of channels/users (e.g., username for direct message, @channel-name for channel, {requester})', 'mattermostjetlag')|e }}">?</span>
+                    </div>
+                </div>
+
+                {# Message template #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">
+                        {{ __('Message template', 'mattermostjetlag') }}: <span class="mjl-required-star">*</span>
+                    </span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <div class="mjl-message-editor-wrap">
+                            <textarea name="rule_message" id="mjl_rule_message"
+                                      rows="6" class="form-control"
+                                      data-placeholder="{{ message_placeholder|e }}">{{ rule.message|default(message_placeholder)|e }}</textarea>
+                            <div id="mjl_message_autocomplete" class="mjl-ac-list" aria-hidden="true"></div>
+                            <div id="mjl_message_toolbar" class="mjl-msg-toolbar" role="toolbar" aria-label="Formatting">
+                                <button type="button" data-style="bold" title="{{ _x('formatting', 'Bold', 'mattermostjetlag') }}"><i class="ti ti-bold"></i></button>
+                                <button type="button" data-style="italic" title="{{ _x('formatting', 'Italic', 'mattermostjetlag') }}"><i class="ti ti-italic"></i></button>
+                                <button type="button" data-style="strike" title="{{ _x('formatting', 'Strikethrough', 'mattermostjetlag') }}"><i class="ti ti-strikethrough"></i></button>
+                                <button type="button" data-style="heading" title="{{ _x('formatting', 'Heading', 'mattermostjetlag') }}"><i class="ti ti-h-1"></i></button>
+                                <span class="mjl-msg-toolbar-sep" aria-hidden="true"></span>
+                                <button type="button" data-style="link" title="{{ _x('formatting', 'Link', 'mattermostjetlag') }}"><i class="ti ti-link"></i></button>
+                                <button type="button" data-style="code" title="{{ _x('formatting', 'Code', 'mattermostjetlag') }}"><i class="ti ti-code"></i></button>
+                                <button type="button" data-style="quote" title="{{ _x('formatting', 'Quote', 'mattermostjetlag') }}"><i class="ti ti-quote"></i></button>
+                                <span id="mjl_message_resize_grip" class="mjl-msg-resize-grip" role="button" tabindex="-1" title="{{ __('Resize', 'mattermostjetlag') }}" aria-label="{{ __('Resize', 'mattermostjetlag') }}"><i class="ti ti-arrows-diagonal-minimize-2"></i></span>
+                            </div>
+                        </div>
+                        <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                              data-bs-title="{{ __('The message text to send to Mattermost. Use {macros} for dynamic values (e.g. {id}, {title}, {requester}). Type { to see available options for the selected Target. Markdown is supported.', 'mattermostjetlag')|e }}">?</span>
+                    </div>
+                </div>
+
+                {# Rule status #}
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">{{ __('Rule status', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <select name="rule_active" id="mjl_rule_active" class="form-select">
+                            {% for value, label in active_options %}
+                                <option value="{{ value }}" {{ (rule.active|default(1)) == value ? 'selected' : '' }}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ═══════ Section 3: Override Mattermost Payload ═══════ #}
+    <div class="card border-0 shadow-none p-0 m-0 mt-3">
+        <div class="card-header mb-3 pt-2 border-top rounded-0"
+             style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+            <h4 class="card-title ms-5">
+                <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                    <i class="fs-2x ti ti-code"></i>
+                </div>
+                {{ __('Override Mattermost Payload', 'mattermostjetlag') }}
+            </h4>
+        </div>
+    </div>
+
+    <div class="card border">
+        <div class="card-body">
+            <div class="mattermostjetlag-form">
+                <div class="mattermostjetlag-form-row">
+                    <span class="mattermostjetlag-form-label">{{ __('Override Mattermost Payload', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <select name="rule_use_raw_payload" id="mjl_use_raw_payload" class="form-select">
+                            <option value="0">{{ __('Disabled', 'mattermostjetlag') }}</option>
+                            <option value="1" {{ (rule.use_raw_payload|default(0)) == 1 ? 'selected' : '' }}>{{ __('Enabled', 'mattermostjetlag') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="mjl_raw_payload_row" class="mattermostjetlag-form-row"
+                     style="{{ (rule.use_raw_payload|default(0)) != 1 ? 'display:none;' : '' }}">
+                    <span class="mattermostjetlag-form-label">{{ __('Override Payload (JSON)', 'mattermostjetlag') }}:</span>
+                    <div class="mattermostjetlag-form-control-cell">
+                        <textarea name="rule_raw_payload" id="mjl_raw_payload"
+                                  rows="18" class="form-control mjl-monospace">{{ rule.raw_payload|default(default_raw_payload)|e }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-success mb-0 mt-3 d-flex align-items-center">
+                <i class="ti ti-book flex-shrink-0 me-2" style="font-size: 1.25rem;" aria-hidden="true"></i>
+                <span>{{ __('To clarify the Mattermost Payload structure, refer to the developer documentation:', 'mattermostjetlag') }}
+                    <a href="https://developers.mattermost.com/api-documentation/#/schemas/Post" target="_blank" rel="noopener noreferrer">
+                        https://developers.mattermost.com/api-documentation/#/schemas/Post
+                    </a>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {# ═══════ Buttons ═══════ #}
+    <div class="mt-3 mb-2 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary mjl-cancel-btn">
+                    {{ __('Cancel', 'mattermostjetlag') }}
+                </button>
+                <input type="submit" class="btn btn-primary" id="mjl_editor_save"
+                       value="{{ _x('button', 'Save', 'mattermostjetlag') }}" disabled>
+    </div>
+</form>
+
+{% if editing and rule_id and extended_filter_html %}
+<script>
+(function() {
+    var card = document.querySelector('.mjl-extended-filter-card');
+    if (!card) return;
+    var ruleId = card.getAttribute('data-mjl-rule-id');
+    var saveFilterUrl = card.getAttribute('data-mjl-save-filter-url');
+    if (!ruleId || !saveFilterUrl) return;
+    var saveBtn = card.querySelector('button[name="save_filters"]');
+    if (saveBtn && saveBtn.closest('form')) {
+        var form = saveBtn.closest('form');
+        saveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            var formData = new FormData(form);
+            formData.set('mattermost_ajax', 'save_rule_filter');
+            formData.set('item_items_id', ruleId);
+            formData.set('action', 'save_filter');
+            var csrfInput = document.querySelector('input[name="_glpi_csrf_token"]');
+            if (csrfInput) formData.set('_glpi_csrf_token', csrfInput.value);
+            fetch(saveFilterUrl, { method: 'POST', body: formData }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data && data.ok) {
+                    if (typeof glpi_toast_info === 'function') glpi_toast_info('{{ __("Filter saved", "mattermostjetlag")|e("js") }}');
+                    location.reload();
+                } else {
+                    if (typeof glpi_toast_error === 'function') glpi_toast_error(data ? data.error : '{{ __("Unable to save filter", "mattermostjetlag")|e("js") }}');
+                }
+            }).catch(function() {
+                if (typeof glpi_toast_error === 'function') glpi_toast_error('{{ __("Unable to save filter", "mattermostjetlag")|e("js") }}');
+            });
+        }, true);
+    }
+    /* Event delegation: CriteriaFilter replaces DOM after save, so the delete button
+       gets recreated without our listener. Listen on the stable card instead. */
+    card.addEventListener('click', function(e) {
+        var target = e.target.closest('button[name="delete_filters"]');
+        if (!target) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var fd = new FormData();
+        fd.set('mattermost_ajax', 'delete_rule_filter');
+        fd.set('item_items_id', ruleId);
+        fd.set('action', 'delete_filter');
+        var csrfInput = document.querySelector('input[name="_glpi_csrf_token"]');
+        if (csrfInput) fd.set('_glpi_csrf_token', csrfInput.value);
+        fetch(saveFilterUrl, { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data && data.ok) location.reload();
+            else {
+                var msg = (data && data.error) ? data.error : '{{ __("Failed to delete filter", "mattermostjetlag")|e("js") }}';
+                if (typeof glpi_toast_error === 'function') glpi_toast_error(msg); else alert(msg);
+            }
+        }).catch(function() {
+            if (typeof glpi_toast_error === 'function') glpi_toast_error('{{ __("Failed to delete filter", "mattermostjetlag")|e("js") }}');
+        });
+    }, true);
+
+    /* ---- Preview Result button: toggle show/hide preview (same button) ---- */
+    var previewEl = document.getElementById('criteria_filter_preview');
+    if (previewEl) {
+        var previewShown = false;
+        var previewResultLabel = '{{ __("Preview result", "mattermostjetlag")|e("js") }}';
+        var hidePreviewLabel = '{{ __("Hide preview", "mattermostjetlag")|e("js") }}';
+        function setBtnLabel(el, label) {
+            if (el.tagName === 'INPUT') el.value = label; else el.textContent = label;
+        }
+        var observer = new MutationObserver(function() {
+            var btn = card.querySelector('button[name="preview_filter"], input[name="preview_filter"], [data-mjl-preview-btn]');
+            if (!btn) btn = Array.prototype.find.call(card.querySelectorAll('button, input[type="submit"], a.btn'), function(el) {
+                var v = (el.value || el.textContent || '').toString();
+                return /preview|aper[uç]u|vorschau|anteprima|vista previa|podgl[aą]d/i.test(v);
+            });
+            if (btn && previewEl.querySelector('table, .list-group, .search-results, [role="table"]')) {
+                previewShown = true;
+                setBtnLabel(btn, hidePreviewLabel);
+                btn.setAttribute('data-mjl-preview-btn', '1');
+            }
+        });
+        observer.observe(previewEl, { childList: true, subtree: true });
+        card.addEventListener('click', function(e) {
+            var btn = e.target.closest('button[name="preview_filter"], input[name="preview_filter"], [data-mjl-preview-btn]');
+            if (!btn) btn = e.target.closest('button, input[type="submit"], a.btn');
+            if (!btn || !card.contains(btn)) return;
+            var v = (btn.value || btn.textContent || '').toString();
+            if (!/preview|aper[uç]u|vorschau|anteprima|vista previa|podgl[aą]d|hide|masquer|ausblenden|nascondi|ocultar|ukryj/i.test(v)) return;
+            if (previewEl.classList.contains('mjl-preview-hidden')) {
+                previewEl.classList.remove('mjl-preview-hidden');
+                setBtnLabel(btn, hidePreviewLabel);
+                btn.setAttribute('data-mjl-preview-btn', '1');
+                return;
+            }
+            if (previewShown) {
+                e.preventDefault();
+                e.stopPropagation();
+                previewEl.classList.add('mjl-preview-hidden');
+                setBtnLabel(btn, previewResultLabel);
+            }
+        }, true);
+    }
+})();
+</script>
+{% endif %}
+<div class="mjl-editor-root"
+     data-default-rule-name="{{ default_rule_name|e }}"
+     data-rules-list-url="{{ rules_list_url|e('html_attr') }}"
+     data-default-recipient="{{ default_recipient|e }}"
+     data-message-placeholder="{{ message_placeholder|e }}"
+     data-macros-by-target="{{ macros_by_target|json_encode|e('html_attr') }}"
+     data-recipient-options-by-target="{{ recipient_options_by_target|json_encode|e('html_attr') }}">
+</div>
+<script>
+if (typeof window.mjlEditorInit === 'function') {
+    window.mjlEditorInit();
+}
+</script>
+</div>

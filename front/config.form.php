@@ -1,0 +1,416 @@
+<?php
+
+/**
+ * -------------------------------------------------------------------------
+ * Mattermost Jetlag plugin for GLPI
+ * -------------------------------------------------------------------------
+ *
+ * @copyright  Copyright (C) 2025
+ * @license    MIT https://opensource.org/licenses/MIT
+ * @link       https://github.com/faithless-padre
+ * -------------------------------------------------------------------------
+ */
+
+use GlpiPlugin\Mattermostjetlag\Config;
+use GlpiPlugin\Mattermostjetlag\EventLog;
+use GlpiPlugin\Mattermostjetlag\MattermostClient;
+use GlpiPlugin\Mattermostjetlag\NotificationRule;
+
+include(__DIR__ . '/../../../inc/includes.php');
+
+Session::checkRight('config', UPDATE);
+
+if (!Plugin::isPluginActive('mattermostjetlag')) {
+    Html::header(__('Setup'), '', 'config', 'plugin');
+    echo "<div class='alert alert-important alert-warning d-flex'>";
+    echo "<b>" . __('Please activate the plugin', 'mattermostjetlag') . "</b></div>";
+    Html::footer();
+    exit;
+}
+
+// ── AJAX: Save Extended Filter (core criteria_filter returns 400 for plugin itemtype) ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'save_rule_filter') {
+    Session::checkLoginUser();
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $items_id = (int) ($_POST['item_items_id'] ?? 0);
+        $criteria = $_POST['criteria'] ?? [];
+        if (is_string($criteria)) {
+            $decoded = json_decode($criteria, true);
+            $criteria = is_array($decoded) ? $decoded : [];
+        } elseif (!is_array($criteria)) {
+            $criteria = [];
+        }
+        if ($items_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid item_items_id']);
+            exit;
+        }
+        $rule = new NotificationRule();
+        if (!$rule->getFromDB($items_id)) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'Rule not found']);
+            exit;
+        }
+        if (!$rule->canUpdateItem()) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'Not allowed']);
+            exit;
+        }
+        if (!$rule->saveFilter($criteria)) {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'error' => 'Unable to save filter']);
+            exit;
+        }
+        echo json_encode(['ok' => true]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Mass update (enable/disable) ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'mass_update') {
+    Session::checkLoginUser();
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $ids = $_POST['rule_ids'] ?? [];
+        if (!is_array($ids)) {
+            $ids = [];
+        }
+        $ids = array_filter(array_map('intval', $ids));
+        $action = $_POST['mass_action'] ?? '';
+        if (!in_array($action, ['enable', 'disable'], true) || empty($ids)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid request']);
+            exit;
+        }
+        $active = $action === 'enable' ? 1 : 0;
+        foreach ($ids as $id) {
+            $rule = new NotificationRule();
+            if ($rule->getFromDB($id) && $rule->canUpdateItem()) {
+                $rule->update(['id' => $id, 'active' => $active]);
+            }
+        }
+        echo json_encode(['ok' => true]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Mass delete ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'mass_delete') {
+    Session::checkLoginUser();
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $ids = $_POST['rule_ids'] ?? [];
+        if (!is_array($ids)) {
+            $ids = [];
+        }
+        $ids = array_filter(array_map('intval', $ids));
+        if (empty($ids)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid request']);
+            exit;
+        }
+        foreach ($ids as $id) {
+            $rule = new NotificationRule();
+            if ($rule->getFromDB($id) && $rule->canDeleteItem()) {
+                $rule->deleteFilter();
+                $rule->delete(['id' => $id]);
+            }
+        }
+        echo json_encode(['ok' => true]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Clone rule (single) ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clone_rule') {
+    Session::checkLoginUser();
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $src_id = (int) ($_POST['rule_id'] ?? 0);
+        if ($src_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid rule_id']);
+            exit;
+        }
+        $src = new NotificationRule();
+        if (!$src->getFromDB($src_id)) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'Rule not found']);
+            exit;
+        }
+        if (!$src->canView()) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'Not allowed']);
+            exit;
+        }
+        $fields = $src->fields;
+        $new_name = __('Clone of', 'mattermostjetlag') . ' (' . ($fields['name'] ?? '') . ')';
+        $new_id = $src->add([
+            'name'             => $new_name,
+            'target'           => $fields['target'] ?? 'Ticket',
+            'event'            => $fields['event'] ?? 'New',
+            'recipient'        => $fields['recipient'] ?? '',
+            'message'          => $fields['message'] ?? '',
+            'active'           => 1,
+            'use_raw_payload'  => (int) ($fields['use_raw_payload'] ?? 0),
+            'raw_payload'      => $fields['raw_payload'] ?? '',
+        ]);
+        if (!$new_id) {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'error' => 'Unable to clone rule']);
+            exit;
+        }
+        $cf_table = \Glpi\Search\CriteriaFilter::getTable();
+        global $DB;
+        if ($DB->tableExists($cf_table)) {
+            $cf_it = $DB->request([
+                'FROM'   => $cf_table,
+                'WHERE'  => [
+                    'itemtype' => NotificationRule::class,
+                    'items_id' => $src_id,
+                ],
+            ]);
+            foreach ($cf_it as $cf_row) {
+                $DB->insert($cf_table, [
+                    'itemtype'        => NotificationRule::class,
+                    'items_id'        => $new_id,
+                    'search_itemtype' => $cf_row['search_itemtype'] ?? 'Ticket',
+                    'search_criteria' => $cf_row['search_criteria'] ?? '[]',
+                ]);
+            }
+        }
+        echo json_encode(['ok' => true, 'new_id' => $new_id]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Delete Extended Filter ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'delete_rule_filter') {
+    Session::checkLoginUser();
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $items_id = (int) ($_POST['item_items_id'] ?? $_POST['items_id'] ?? 0);
+        if ($items_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid item_items_id']);
+            exit;
+        }
+        $rule = new NotificationRule();
+        if (!$rule->getFromDB($items_id)) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'Rule not found: ' . $items_id]);
+            exit;
+        }
+        if (!$rule->canUpdateItem()) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'Not allowed']);
+            exit;
+        }
+        if (!$rule->deleteFilter()) {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'error' => 'Unable to delete filter']);
+            exit;
+        }
+        echo json_encode(['ok' => true]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Test webhook connection ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'test_webhook') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $webhookUrl = trim($_POST['test_webhook_url'] ?? '');
+        $channel    = trim($_POST['test_channel'] ?? '');
+        $message    = trim($_POST['test_message'] ?? '');
+        $nickname   = trim($_POST['test_sender_nickname'] ?? '');
+        $avatar     = trim($_POST['test_sender_avatar'] ?? '');
+
+        $newCsrfToken = Session::getNewCSRFToken();
+
+        if ($webhookUrl === '' || $channel === '' || $message === '') {
+            http_response_code(400);
+            echo json_encode([
+                'ok'         => false,
+                'error'      => 'Webhook URL, Channel and Message are required.',
+                'csrf_token' => $newCsrfToken,
+            ]);
+            exit;
+        }
+
+        $error = null;
+        $ok = MattermostClient::sendTestWebhook(
+            $webhookUrl,
+            $channel,
+            $message,
+            $nickname !== '' ? $nickname : null,
+            $avatar !== '' ? $avatar : null,
+            $error
+        );
+
+        // Persist test result
+        try {
+            global $DB;
+            $table   = Config::getTable();
+            $ts      = time();
+            $success = $ok ? 1 : 0;
+            $err     = $ok ? null : ($error ?? null);
+            $DB->update($table, [
+                'last_test_timestamp' => $ts,
+                'last_test_success'   => $success,
+                'last_test_error'     => $err,
+            ], ['id' => 1]);
+        } catch (\Throwable $e) {
+            // don't break the response if status write fails
+        }
+
+        $newCsrfToken = Session::getNewCSRFToken();
+
+        if ($ok) {
+            echo json_encode([
+                'ok'         => true,
+                'message'    => 'Test message successfully sent to Mattermost.',
+                'csrf_token' => $newCsrfToken,
+            ]);
+        } else {
+            http_response_code(502);
+            echo json_encode([
+                'ok'         => false,
+                'error'      => $error ?: 'Unknown error while sending test message.',
+                'csrf_token' => $newCsrfToken,
+            ]);
+        }
+    } catch (\Throwable $e) {
+        try {
+            global $DB;
+            $table = Config::getTable();
+            $DB->update($table, [
+                'last_test_timestamp' => time(),
+                'last_test_success'   => 0,
+                'last_test_error'     => $e->getMessage(),
+            ], ['id' => 1]);
+        } catch (\Throwable $e2) {
+            // ignore
+        }
+        http_response_code(500);
+        echo json_encode([
+            'ok'         => false,
+            'error'      => 'Internal server error: ' . $e->getMessage(),
+            'csrf_token' => Session::getNewCSRFToken(),
+        ]);
+    }
+    exit;
+}
+
+// ── AJAX: Clear event log ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_event_log') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        global $DB;
+        $table = EventLog::getTable();
+        if ($DB->tableExists($table)) {
+            $DB->doQuery("DELETE FROM `$table`");
+        }
+        echo json_encode(['ok' => true]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── Form POST: Save config ──
+$config = new Config();
+
+$tab_editor = Config::getType() . '$3'; // Rule Editor tab
+$tab_rules  = Config::getType() . '$2'; // Rules List tab
+$tab_debug  = Config::getType() . '$8'; // Debug Mode tab
+$base_url   = \Toolbox::getItemTypeFormURL(Config::getType()) . '?id=1';
+$redirect_editor = $base_url . '&_glpi_tab=' . urlencode($tab_editor);
+$redirect_rules  = $base_url . '&_glpi_tab=' . urlencode($tab_rules);
+$redirect_debug  = $base_url . '&_glpi_tab=' . urlencode($tab_debug);
+
+if (isset($_POST['update_config'])) {
+    $config->update($_POST);
+    Html::back();
+}
+
+if (isset($_POST['update_debug_config'])) {
+    $config->update([
+        'id'           => 1,
+        'extended_log' => (int) ($_POST['extended_log'] ?? 0),
+    ]);
+    Session::addMessageAfterRedirect(__('Saved', 'mattermostjetlag'));
+    Html::redirect($redirect_debug);
+}
+
+if (isset($_POST['add_notification_rule']) && trim($_POST['rule_name'] ?? '') !== '') {
+    $rule = new NotificationRule();
+    $new_id = $rule->add([
+        'name'             => trim($_POST['rule_name']),
+        'target'           => trim($_POST['rule_target'] ?? 'Ticket'),
+        'event'             => trim($_POST['rule_event'] ?? 'New'),
+        'recipient'        => trim($_POST['rule_recipient'] ?? ''),
+        'message'          => trim($_POST['rule_message'] ?? ''),
+        'active'           => (int) ($_POST['rule_active'] ?? 1),
+        'use_raw_payload'  => (int) ($_POST['rule_use_raw_payload'] ?? 0),
+        'raw_payload'      => trim($_POST['rule_raw_payload'] ?? ''),
+    ]);
+    if ($new_id) {
+        Session::addMessageAfterRedirect(__('Rule saved', 'mattermostjetlag'));
+        Html::redirect($redirect_rules);
+    } else {
+        Session::addMessageAfterRedirect(__('Unable to create rule', 'mattermostjetlag'), false, ERROR);
+        Html::back();
+    }
+}
+
+if (isset($_POST['update_notification_rule']) && (int) ($_POST['rule_id'] ?? 0) > 0) {
+    $rule_id = (int) $_POST['rule_id'];
+    $rule = new NotificationRule();
+    $rule->update([
+        'id'               => $rule_id,
+        'name'             => trim($_POST['rule_name'] ?? ''),
+        'target'           => trim($_POST['rule_target'] ?? 'Ticket'),
+        'event'            => trim($_POST['rule_event'] ?? 'New'),
+        'recipient'        => trim($_POST['rule_recipient'] ?? ''),
+        'message'          => trim($_POST['rule_message'] ?? ''),
+        'active'           => (int) ($_POST['rule_active'] ?? 1),
+        'use_raw_payload'  => (int) ($_POST['rule_use_raw_payload'] ?? 0),
+        'raw_payload'      => trim($_POST['rule_raw_payload'] ?? ''),
+    ]);
+    Session::addMessageAfterRedirect(__('Rule saved', 'mattermostjetlag'));
+    Html::redirect($redirect_rules);
+}
+
+// ── Default: Render config page ──
+if (!isset($_GET['id'])) {
+    $_GET['id'] = 1;
+}
+// Default tab: Rules List when none specified
+if (empty($_GET['_glpi_tab'])) {
+    $_GET['_glpi_tab'] = $tab_rules;
+}
+Session::setActiveTab(Config::getType(), $_GET['_glpi_tab']);
+Html::header(__('Mattermost Jetlag', 'mattermostjetlag'), $_SERVER['PHP_SELF'], 'config', 'plugin', 'mattermostjetlag');
+$config->display($_GET);
+Html::footer();

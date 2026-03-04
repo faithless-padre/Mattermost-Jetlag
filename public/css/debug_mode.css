@@ -1,0 +1,212 @@
+/**
+ * Debug Mode tab — event log list, expand/collapse, pagination.
+ */
+
+/* ---- Log card: same horizontal margin as mjl-rules-toolbar ---- */
+/* Override the general .mjl-tab-content > .card padding rule (rules_list.css:19)
+   which would add double indentation on top of our margin. */
+.mjl-log-card {
+    margin-left: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
+    margin-right: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
+    padding-left: 0;
+    padding-right: 0;
+}
+/* Card-body: vertical = py-2, horizontal 10px */
+.mjl-log-card .card-body {
+    padding: 0.5rem 10px;
+}
+
+/* ---- Log list (grid) ---- */
+/* Columns: id | target | event | status | type | urgency | priority | ticket# | rules | date | chevron */
+.mjl-log-list {
+    display: grid;
+    grid-template-columns:
+        52px
+        max-content
+        max-content
+        max-content
+        max-content
+        max-content
+        max-content
+        minmax(60px, 1fr)
+        max-content
+        max-content
+        24px;
+    gap: 0 0.75rem;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* ---- Header row ---- */
+.mjl-log-header {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    margin-bottom: 0.5rem;
+    align-items: center;
+    border: 1px solid var(--tblr-border-color, #dee2e6);
+    border-radius: 8px;
+    background: #e6eff7;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--tblr-body-color, #212529);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    overflow: hidden;
+}
+.mjl-log-header > span {
+    padding: 0.35rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.mjl-log-header > span:first-child { padding-left: 0.5rem; }
+.mjl-log-header > span:last-child  { padding-right: 0.5rem; }
+
+/* ---- Log row ---- */
+.mjl-log-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: center;
+    border: 1px solid var(--tblr-border-color, #dee2e6);
+    border-radius: 8px;
+    margin-bottom: 0.35rem;
+    background: var(--tblr-bg-surface, #fff);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.mjl-log-row > span {
+    padding: 0.55rem 0.5rem;
+    overflow: hidden;
+}
+.mjl-log-row > span:first-child { padding-left: 0.5rem; }
+.mjl-log-row > span:last-child  { padding-right: 0.5rem; }
+.mjl-log-row:hover {
+    background: #e8f4ea;
+    border-color: #72b676;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.mjl-log-row.is-open {
+    border-radius: 8px 8px 0 0;
+    border-bottom-color: transparent;
+    margin-bottom: 0;
+    background: #f0f7ff;
+    border-color: #9fc5e8;
+}
+
+/* ---- Log row chevron ---- */
+.mjl-log-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: var(--tblr-body-color-muted, #6c757d);
+    transition: transform 0.2s ease;
+}
+.mjl-log-row.is-open .mjl-log-chevron {
+    transform: rotate(90deg);
+}
+
+/* ---- Log row fields ---- */
+.mjl-log-id {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--tblr-body-color-muted, #6c757d);
+    white-space: nowrap;
+}
+.mjl-log-target .badge {
+    font-weight: 500;
+    background-color: #cfe2ff;
+    color: #084298;
+}
+.mjl-log-event .badge {
+    font-weight: 500;
+}
+.mjl-log-ticket {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--tblr-body-color-muted, #6c757d);
+    white-space: nowrap;
+}
+.mjl-log-date {
+    font-size: 0.8125rem;
+    color: var(--tblr-body-color-muted, #6c757d);
+    white-space: nowrap;
+}
+.mjl-log-status,
+.mjl-log-type,
+.mjl-log-urgency,
+.mjl-log-priority {
+    font-size: 0.8125rem;
+    color: var(--tblr-body-color-muted, #6c757d);
+    white-space: nowrap;
+}
+.mjl-log-rules .badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+/* ---- Detail panel (expanded JSON) ---- */
+.mjl-log-detail {
+    grid-column: 1 / -1;
+    border: 1px solid #9fc5e8;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+}
+.mjl-log-detail.mjl-hidden {
+    display: none;
+}
+.mjl-log-json {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* ---- Empty state ---- */
+.mjl-log-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--tblr-body-color-muted, #6c757d);
+    font-style: italic;
+}
+
+/* ---- Footer: show-more + paginator (reuses rules_list pattern) ---- */
+.mjl-log-footer {
+    display: flex;
+    align-items: center;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0;
+    position: relative;
+}
+.mjl-log-footer-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.mjl-log-footer-right {
+    margin-left: auto;
+}
+
+/* New rows: smooth appearance */
+.mjl-log-row.mjl-row-appearing {
+    animation: mjl-log-row-appear 0.3s ease-out forwards;
+}
+@keyframes mjl-log-row-appear {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

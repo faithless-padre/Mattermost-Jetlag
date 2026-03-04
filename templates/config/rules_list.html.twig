@@ -1,0 +1,171 @@
+{# Rules List tab — grid of notification rules with toolbar and pagination #}
+<div class="mjl-tab-content">
+{# ═══════ Header plaque ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-n2">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-list"></i>
+            </div>
+            {{ __('Rules List', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+
+{# ═══════ Toolbar ═══════ #}
+<div class="mjl-rules-toolbar card border mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-2 mjl-rules-toolbar-btns">
+                <a href="{{ editor_add_url|e }}" class="btn btn-sm btn-primary mjl-add-rule-btn">
+                    <i class="ti ti-plus me-1"></i>{{ __('Add new rule', 'mattermostjetlag') }}
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary mjl-mass-btn" data-action="disable_selected">
+                    <i class="ti ti-toggle-right me-1"></i>{{ __('Disable Selected', 'mattermostjetlag') }}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary mjl-mass-btn" data-action="enable_selected">
+                    <i class="ti ti-toggle-left me-1"></i>{{ __('Enable Selected', 'mattermostjetlag') }}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary mjl-mass-btn" data-action="clone_selected">
+                    <i class="ti ti-copy me-1"></i>{{ __('Clone Selected', 'mattermostjetlag') }}
+                </button>
+                <span class="mjl-toolbar-divider" aria-hidden="true"></span>
+                <button type="button" class="btn btn-sm btn-outline-danger mjl-mass-btn" data-action="delete_selected">
+                    <i class="ti ti-trash me-1"></i>{{ __('Delete Selected', 'mattermostjetlag') }}
+                </button>
+            </div>
+            <form class="d-flex align-items-center gap-2 ms-auto mjl-search-form" id="mjl-search-form">
+                <input type="text" name="mjl_search" id="mjl-search-input"
+                       value="{{ search|e }}" class="form-control form-control-sm"
+                       style="width: 200px;"
+                       placeholder="{{ __('Rule name', 'mattermostjetlag') }}">
+                <button type="button" class="btn btn-sm btn-primary mjl-search-btn">
+                    <i class="ti ti-search me-1"></i>{{ __('Search', 'mattermostjetlag') }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# ═══════ Rules grid ═══════ #}
+<div class="mjl-rules-list">
+    <div class="mjl-rules-header">
+        <span class="d-flex align-items-center justify-content-center">
+            <input type="checkbox" id="mjl-rules-select-all"
+                   class="form-check-input" title="{{ __('Select all', 'mattermostjetlag') }}" aria-label="{{ __('Select all', 'mattermostjetlag') }}">
+        </span>
+        <span></span>
+        {% for key, label in columns %}
+            {% if key in ['raw', 'filtering'] %}
+                <span class="mjl-th"><span>{{ label }}</span></span>
+            {% else %}
+                <span class="mjl-th mjl-sortable{{ sort == key ? ' active' : '' }}" data-sort-key="{{ key }}">
+                    <a href="javascript:void(0)" class="mjl-sort-link" data-sort="{{ key }}" role="button">
+                        <span>{{ label }}</span>
+                        <i class="ti ti-sort-{{ sort == key and order == 'desc' ? 'descending' : 'ascending' }}"></i>
+                    </a>
+                </span>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if rules|length == 0 %}
+        <div class="p-4 text-center text-muted" style="grid-column: 1 / -1;">
+            {{ search ? __('No rules match your search.', 'mattermostjetlag') : __('No notification rules yet.', 'mattermostjetlag') }}
+        </div>
+    {% else %}
+        {% for rule in rules %}
+            <div class="mjl-rule-row">
+                <span class="d-flex align-items-center justify-content-center">
+                    <input type="checkbox" name="mjl_rule_ids[]" value="{{ rule.id }}"
+                           class="form-check-input mjl-rule-cb" aria-label="{{ __('Select', 'mattermostjetlag') }}">
+                </span>
+                <span class="rule-edit">
+                    <a href="{{ rule.edit_url|e }}" class="btn btn-sm btn-ghost-secondary mjl-edit-rule" data-rule-id="{{ rule.id }}" title="{{ __('Edit', 'mattermostjetlag') }}">
+                        <i class="ti ti-pencil"></i>
+                    </a>
+                </span>
+                <span class="rule-name">{{ rule.name|e }}</span>
+                <span class="rule-target"><span class="badge">{{ rule.target|e }}</span></span>
+                <span class="rule-event"><span class="badge bg-primary">{{ (event_labels[rule.event] ?? rule.event)|e }}</span></span>
+                <span class="rule-recipient" title="{{ rule.recipient|e }}">{{ rule.recipient|e }}</span>
+                <span class="rule-raw" title="{{ rule.use_raw ? __('Raw payload enabled', 'mattermostjetlag') : __('Raw payload disabled', 'mattermostjetlag') }}">
+                    <span class="mjl-indicator-{{ rule.use_raw ? 'on' : 'off' }}">
+                        <i class="ti ti-{{ rule.use_raw ? 'code' : 'code-off' }}"></i>
+                    </span>
+                </span>
+                <span class="rule-filtering" title="{{ rule.has_filter ? __('Extended filter is set', 'mattermostjetlag') : __('No extended filter', 'mattermostjetlag') }}">
+                    <span class="mjl-indicator-{{ rule.has_filter ? 'on' : 'off' }}">
+                        <i class="ti ti-{{ rule.has_filter ? 'filter' : 'filter-off' }}"></i>
+                    </span>
+                </span>
+                <span class="rule-date">{{ rule.date_creation|e }}</span>
+                <span class="rule-active">
+                    <span class="badge {{ rule.active ? 'badge-active-yes' : 'badge-active-no' }}">
+                        {{ rule.active ? __('Yes', 'mattermostjetlag') : __('No', 'mattermostjetlag') }}
+                    </span>
+                </span>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+{# ═══════ Footer: Show more (center) + paginator (right) ═══════ #}
+<div class="mjl-rules-footer">
+    <div class="mjl-rules-footer-center">
+        {% if total > per_page %}
+            <button type="button" class="btn btn-primary" id="mjl-show-more">
+                <i class="ti ti-chevrons-down me-1"></i>{{ __('Show more', 'mattermostjetlag') }}
+            </button>
+        {% endif %}
+    </div>
+    <div class="mjl-rules-footer-right">
+        <nav class="mjl-paginator" aria-label="Pagination">
+            <a href="#" class="mjl-page-link mjl-page-prev" data-page="prev" title="{{ __('Previous', 'mattermostjetlag') }}"><i class="ti ti-chevron-left"></i></a>
+            {% for p in 1..total_pages %}
+                <a href="#" class="mjl-page-link{{ p == page ? ' active' : '' }}" data-page="{{ p }}">{{ p }}</a>
+            {% endfor %}
+            <a href="#" class="mjl-page-link mjl-page-next" data-page="next" title="{{ __('Next', 'mattermostjetlag') }}"><i class="ti ti-chevron-right"></i></a>
+        </nav>
+    </div>
+</div>
+
+<input type="hidden" id="mjl-rules-csrf" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+<div class="mjl-rules-list-root"
+     data-ajax-url="{{ ajax_url|e('html_attr') }}"
+     data-editor-base="{{ editor_add_url|e('html_attr') }}"
+     data-rules-list-url="{{ rules_base_url|e('html_attr') }}"
+     data-i18n-no-search-match="{{ __('No rules match your search.', 'mattermostjetlag')|e }}"
+     data-i18n-no-rules="{{ __('No notification rules yet.', 'mattermostjetlag')|e }}"
+     data-i18n-select-rule="{{ __('Select at least one rule.', 'mattermostjetlag')|e }}"
+     data-i18n-select-one="{{ __('Select only one rule.', 'mattermostjetlag')|e }}"
+     data-i18n-confirm-delete="{{ __('Delete selected rules?', 'mattermostjetlag')|e }}"
+     data-i18n-delete-btn="{{ _x('button', 'Delete', 'mattermostjetlag')|e }}"
+     data-i18n-cancel="{{ _x('button', 'Cancel', 'mattermostjetlag')|e }}"
+     data-i18n-cloned="{{ __('Rule cloned', 'mattermostjetlag')|e }}"
+     data-i18n-updated="{{ __('Rules updated', 'mattermostjetlag')|e }}"
+     data-i18n-deleted="{{ __('Rules deleted', 'mattermostjetlag')|e }}"
+     data-i18n-yes="{{ __('Yes', 'mattermostjetlag')|e }}"
+     data-i18n-no="{{ __('No', 'mattermostjetlag')|e }}"
+     data-i18n-raw-on="{{ __('Raw payload enabled', 'mattermostjetlag')|e }}"
+     data-i18n-raw-off="{{ __('Raw payload disabled', 'mattermostjetlag')|e }}"
+     data-i18n-filter-on="{{ __('Extended filter is set', 'mattermostjetlag')|e }}"
+     data-i18n-filter-off="{{ __('No extended filter', 'mattermostjetlag')|e }}"
+     data-i18n-select="{{ __('Select', 'mattermostjetlag')|e }}"
+     data-i18n-edit="{{ __('Edit', 'mattermostjetlag')|e }}"
+     data-per-page="{{ per_page }}"
+     data-total-pages="{{ total_pages }}"
+     data-initial-page="{{ page }}"
+     data-initial-sort="{{ sort }}"
+     data-initial-order="{{ order }}"
+     data-initial-search="{{ search|e('html_attr') }}"
+     data-all-rules="{{ all_rules|json_encode|e('html_attr') }}"
+     data-editor-add-url="{{ editor_add_url|e('html_attr') }}">
+</div>
+<script>
+if (typeof window.mjlRulesListInit === 'function') {
+    window.mjlRulesListInit();
+}
+</script>
+</div>
