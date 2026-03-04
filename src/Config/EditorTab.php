@@ -92,10 +92,10 @@ class EditorTab
             $payload['icon_url'] = $avatar;
         } elseif ($avatar !== '') {
             $payload['icon_emoji'] = $avatar;
+        } else {
+            $payload['icon_emoji'] = '';
         }
-        if ($nickname !== '') {
-            $payload['username'] = $nickname;
-        }
+        $payload['username'] = $nickname !== '' ? $nickname : '';
         $payload['priority'] = [
             'priority'      => 'urgent',
             'requested_ack' => true,

@@ -361,6 +361,167 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'toggle_ex
     exit;
 }
 
+// ── AJAX: Export rules (GET — read-only, no CSRF required) ──
+if (isset($_GET['mattermost_ajax']) && $_GET['mattermost_ajax'] === 'export_rules') {
+    Session::checkLoginUser();
+    Session::checkRight('config', READ);
+
+    $ids = $_POST['rule_ids'] ?? [];
+    if (!is_array($ids)) {
+        $ids = [];
+    }
+    $ids = array_filter(array_map('intval', $ids));
+
+    if (empty($ids)) {
+        http_response_code(400);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'error' => 'No rules selected']);
+        exit;
+    }
+
+    global $DB;
+    $cf_table = \Glpi\Search\CriteriaFilter::getTable();
+    $rules = [];
+
+    foreach ($ids as $id) {
+        $rule = new NotificationRule();
+        if (!$rule->getFromDB($id) || !$rule->canView()) {
+            continue;
+        }
+        $f = $rule->fields;
+
+        // Decode raw_payload to object for cleaner JSON export
+        $rawPayload = null;
+        if ((int) ($f['use_raw_payload'] ?? 0) === 1 && !empty($f['raw_payload'])) {
+            $decoded = json_decode($f['raw_payload'], true);
+            $rawPayload = is_array($decoded) ? $decoded : $f['raw_payload'];
+        }
+
+        // Fetch extended filter
+        $extFilter = null;
+        if ($DB->tableExists($cf_table)) {
+            $cf_it = $DB->request([
+                'FROM'  => $cf_table,
+                'WHERE' => ['itemtype' => NotificationRule::class, 'items_id' => $id],
+                'LIMIT' => 1,
+            ]);
+            foreach ($cf_it as $cfRow) {
+                $criteria = $cfRow['search_criteria'] ?? '[]';
+                $extFilter = [
+                    'search_itemtype' => $cfRow['search_itemtype'] ?? 'Ticket',
+                    'search_criteria' => json_decode($criteria, true) ?? $criteria,
+                ];
+            }
+        }
+
+        $rules[] = [
+            'name'            => $f['name'] ?? '',
+            'target'          => $f['target'] ?? 'Ticket',
+            'event'           => $f['event'] ?? '',
+            'recipient'       => $f['recipient'] ?? '',
+            'message'         => $f['message'] ?? '',
+            'active'          => (int) ($f['active'] ?? 1),
+            'use_raw_payload' => (int) ($f['use_raw_payload'] ?? 0),
+            'raw_payload'     => $rawPayload,
+            'extended_filter' => $extFilter,
+        ];
+    }
+
+    $export = [
+        'version'     => '1.0',
+        'plugin'      => 'mattermostjetlag',
+        'exported_at' => date('c'),
+        'rules'       => $rules,
+    ];
+
+    $filename = 'mattermostjetlag-rules-' . date('Y-m-d') . '.json';
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache, no-store');
+    echo json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+// ── AJAX: Import rules ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'import_rules') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $jsonContent = $_POST['rules_json'] ?? '';
+        if (empty($jsonContent)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Empty JSON content']);
+            exit;
+        }
+
+        $data = json_decode($jsonContent, true);
+        if (!is_array($data) || !isset($data['rules']) || !is_array($data['rules'])) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid JSON format: missing "rules" array']);
+            exit;
+        }
+
+        global $DB;
+        $cf_table = \Glpi\Search\CriteriaFilter::getTable();
+        $created  = 0;
+
+        foreach ($data['rules'] as $ruleData) {
+            if (!is_array($ruleData)) {
+                continue;
+            }
+
+            // Re-encode raw_payload back to JSON string if it was exported as object
+            $rawPayload = null;
+            if (!empty($ruleData['raw_payload'])) {
+                if (is_array($ruleData['raw_payload'])) {
+                    $rawPayload = json_encode($ruleData['raw_payload'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                } else {
+                    $rawPayload = (string) $ruleData['raw_payload'];
+                }
+            }
+
+            $rule   = new NotificationRule();
+            $new_id = $rule->add([
+                'name'            => trim($ruleData['name'] ?? ''),
+                'target'          => trim($ruleData['target'] ?? 'Ticket'),
+                'event'           => trim($ruleData['event'] ?? ''),
+                'recipient'       => trim($ruleData['recipient'] ?? ''),
+                'message'         => trim($ruleData['message'] ?? ''),
+                'active'          => (int) ($ruleData['active'] ?? 1),
+                'use_raw_payload' => (int) ($ruleData['use_raw_payload'] ?? 0),
+                'raw_payload'     => $rawPayload,
+            ]);
+
+            if (!$new_id) {
+                continue;
+            }
+            $created++;
+
+            // Import extended filter
+            $ef = $ruleData['extended_filter'] ?? null;
+            if (!empty($ef) && is_array($ef) && $DB->tableExists($cf_table)) {
+                $criteria = $ef['search_criteria'] ?? '[]';
+                $DB->insert($cf_table, [
+                    'itemtype'        => NotificationRule::class,
+                    'items_id'        => $new_id,
+                    'search_itemtype' => $ef['search_itemtype'] ?? 'Ticket',
+                    'search_criteria' => is_array($criteria)
+                        ? json_encode($criteria, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                        : $criteria,
+                ]);
+            }
+        }
+
+        echo json_encode(['ok' => true, 'created' => $created, 'csrf_token' => Session::getNewCSRFToken()]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 // ── AJAX: Clear event log ──
 if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_event_log') {
     Session::checkLoginUser();

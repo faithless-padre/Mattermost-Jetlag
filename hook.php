@@ -15,6 +15,7 @@ use Glpi\Search\CriteriaFilter;
 use GlpiPlugin\Mattermostjetlag\Config;
 use GlpiPlugin\Mattermostjetlag\EventLog;
 use GlpiPlugin\Mattermostjetlag\NotificationRule;
+use GlpiPlugin\Mattermostjetlag\SendLog;
 
 /**
  * Inject plugin entry under Setup > Plugins in the breadcrumb.
@@ -157,6 +158,24 @@ function plugin_mattermostjetlag_install()
         $DB->doQuery($query);
     }
 
+    $sendlogs_table = SendLog::getTable();
+    if (!$DB->tableExists($sendlogs_table)) {
+        $query = "CREATE TABLE `$sendlogs_table` (
+            `id`            int {$default_key_sign} NOT NULL AUTO_INCREMENT,
+            `target`        varchar(64) NOT NULL DEFAULT 'Ticket',
+            `target_id`     int DEFAULT NULL,
+            `event`         varchar(64) NOT NULL DEFAULT '',
+            `rule_id`       int DEFAULT NULL,
+            `recipient`     varchar(500) DEFAULT NULL,
+            `http_status`   int NOT NULL DEFAULT 0,
+            `simulate`      tinyint(1) NOT NULL DEFAULT 0,
+            `error`         text DEFAULT NULL,
+            `date_creation` datetime DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
+        $DB->doQuery($query);
+    }
+
     $migration->executeMigration();
 
     // Migrate existing filters from plugin table to glpi_criteriafilters (standard storage)
@@ -208,6 +227,11 @@ function plugin_mattermostjetlag_uninstall()
     $itemtype = NotificationRule::class;
     if ($DB->tableExists('glpi_criteriafilters')) {
         $DB->doQuery("DELETE FROM `glpi_criteriafilters` WHERE `itemtype` = " . $DB->quote($itemtype));
+    }
+
+    $sendlogs_table = SendLog::getTable();
+    if ($DB->tableExists($sendlogs_table)) {
+        $DB->doQuery("DROP TABLE `$sendlogs_table`");
     }
 
     $logs_table = EventLog::getTable();

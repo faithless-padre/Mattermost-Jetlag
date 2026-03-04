@@ -13,6 +13,7 @@
 
 use CommonDBTM;
 use GlpiPlugin\Mattermostjetlag\NotificationRule;
+use GlpiPlugin\Mattermostjetlag\SendLog;
 use Ticket;
 use User;
 
@@ -596,15 +597,28 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
             $payloadJson      = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             $entry['payload'] = $payloadJson;
 
+            $sendHttpCode = 0;
             if ($simulate) {
-                $entry['ok'] = true;
+                $entry['ok']  = true;
+                $sendHttpCode = 0;
             } else {
-                $error       = null;
-                $entry['ok'] = \GlpiPlugin\Mattermostjetlag\MattermostClient::sendRaw($webhookUrl, $payloadJson, $error);
+                $error        = null;
+                $entry['ok']  = \GlpiPlugin\Mattermostjetlag\MattermostClient::sendRaw($webhookUrl, $payloadJson, $error, $sendHttpCode);
                 if (!$entry['ok']) {
                     $entry['error'] = $error;
                 }
             }
+
+            SendLog::record(
+                'Ticket',
+                (int) ($data['ticket_id'] ?? 0),
+                (string) ($data['event'] ?? ''),
+                $rule->getID(),
+                $recipient,
+                $sendHttpCode,
+                $simulate,
+                $entry['error'] ?? null
+            );
 
             plugin_mattermostjetlag_log_mattermost_send(
                 $rule->getID(), $webhookUrl, $payloadJson, $simulate, $entry['ok'], $entry['error'] ?? ''
