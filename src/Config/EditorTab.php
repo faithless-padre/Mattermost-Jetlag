@@ -21,14 +21,14 @@ class EditorTab
     ];
 
     public const RULE_EVENTS = [
-        'create'         => 'Create',
-        'followup'       => 'Add Comment',
-        'approval'       => 'Send for Approval',
-        'approved'       => 'Approval Granted',
-        'rejected'       => 'Approval Rejected',
-        'status_changed' => 'Status changed',
+        'create'         => 'Ticket Created',
+        'followup'       => 'Ticket Commented',
+        'approval'       => 'Approval Requested',
+        'approved'       => 'Ticket Approved',
+        'rejected'       => 'Ticket Rejected',
+        'status_changed' => 'Status Changed',
         'members_change' => 'Members Changed',
-        'solution'          => 'Add Solution',
+        'solution'          => 'Solution Proposed',
         'solution_approved' => 'Solution Approved',
         'solution_rejected' => 'Solution Rejected',
     ];

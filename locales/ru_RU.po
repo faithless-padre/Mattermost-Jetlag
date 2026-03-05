@@ -634,32 +634,32 @@ msgid "Ticket"
 msgstr "Заявка"
 
 #: src/Config/EditorTab.php
-msgid "Create"
-msgstr "Создание"
+msgid "Ticket Created"
+msgstr "Заявка создана"
 
 #: src/Config/EditorTab.php
-msgid "Add Comment"
-msgstr "Добавление комментария"
+msgid "Ticket Commented"
+msgstr "Заявка прокомментирована"
 
 #: src/Config/EditorTab.php
-msgid "Send for Approval"
-msgstr "Отправка на согласование"
+msgid "Approval Requested"
+msgstr "Запрос на согласование"
 
 #: src/Config/EditorTab.php
-msgid "Approval Granted"
-msgstr "Согласовано"
+msgid "Ticket Approved"
+msgstr "Заявка согласована"
 
 #: src/Config/EditorTab.php
-msgid "Approval Rejected"
-msgstr "Отклонено"
+msgid "Ticket Rejected"
+msgstr "Заявка отклонена"
 
 #: src/Config/EditorTab.php
-msgid "Status changed"
-msgstr "Изменение статуса"
+msgid "Status Changed"
+msgstr "Статус изменён"
 
 #: src/Config/EditorTab.php
 msgid "Members Changed"
-msgstr "Изменение участников"
+msgstr "Участники изменены"
 
 #: src/Config/EditorTab.php
 msgid "Disable"
@@ -808,8 +808,8 @@ msgid "Ticket #"
 msgstr "Заявка №"
 
 #: src/Config/EditorTab.php
-msgid "Add Solution"
-msgstr "Добавление решения"
+msgid "Solution Proposed"
+msgstr "Предложено решение"
 
 #: src/Config/EditorTab.php
 msgid "Solution Approved"
