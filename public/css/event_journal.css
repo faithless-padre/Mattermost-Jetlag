@@ -103,6 +103,16 @@
     transform: rotate(90deg);
 }
 
+/* ---- Name / Initiator columns: left-align ---- */
+.mjl-ej-name,
+.mjl-ej-initiator {
+    justify-content: flex-start !important;
+}
+.mjl-ej-header-row > span:nth-child(4),
+.mjl-ej-header-row > span:nth-child(5) {
+    justify-content: flex-start;
+}
+
 /* ---- Level-1 fields ---- */
 .mjl-ej-ticket {
     font-size: 0.875rem;
