@@ -44,20 +44,15 @@ window.mjlDebugModeInit = function () {
 
     function buildPair(log, withAppear) {
         var rowClass = 'mjl-log-row' + (withAppear ? ' mjl-row-appearing' : '');
-        var ticketText = log.ticket_id ? esc(i18n.ticket) + esc(log.ticket_id) : '—';
         var rulesCount = log.rules_count != null ? log.rules_count : 0;
-        var rulesBadge = '<span class="badge ' + (rulesCount > 0 ? 'bg-success' : 'bg-secondary') + '">'
+        var rulesBadge = '<span class="badge ' + (rulesCount > 0 ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary') + '">'
             + esc(rulesCount) + '</span>';
 
         var row = '<div class="' + rowClass + '" data-log-idx="' + esc(log.id) + '">'
-            + '<span class="mjl-log-id">' + esc(log.id) + '</span>'
-            + '<span class="mjl-log-target"><span class="badge">' + esc(log.target) + '</span></span>'
-            + '<span class="mjl-log-event"><span class="badge bg-primary">' + esc(log.event) + '</span></span>'
-            + '<span class="mjl-log-status">' + (log.status ? esc(log.status) : '—') + '</span>'
-            + '<span class="mjl-log-type">' + (log.type ? esc(log.type) : '—') + '</span>'
-            + '<span class="mjl-log-urgency">' + (log.urgency ? esc(log.urgency) : '—') + '</span>'
-            + '<span class="mjl-log-priority">' + (log.priority ? esc(log.priority) : '—') + '</span>'
-            + '<span class="mjl-log-ticket">' + ticketText + '</span>'
+            + '<span class="mjl-log-ticket">' + (log.ticket_id ? esc(log.ticket_id) : '—') + '</span>'
+            + '<span class="mjl-log-target"><span class="badge bg-blue-lt text-blue">' + esc(log.target) + '</span></span>'
+            + '<span class="mjl-log-event"><span class="badge bg-azure-lt text-azure">' + esc(log.event) + '</span></span>'
+            + '<span class="mjl-log-subject" title="' + esc(log.subject) + '">' + (log.subject ? esc(log.subject) : '—') + '</span>'
             + '<span class="mjl-log-rules">' + rulesBadge + '</span>'
             + '<span class="mjl-log-date">' + esc(log.date_creation) + '</span>'
             + '<span class="mjl-log-chevron"><i class="ti ti-chevron-right"></i></span>'
@@ -253,7 +248,7 @@ window.mjlDebugModeInit = function () {
                     if (data.csrf_token) { csrfToken = data.csrf_token; }
                     if (!data.ok) { return; }
                     updateToggleBtn(toggleBtn, data.extended_log === 1,
-                        'btn-warning', 'btn-danger', 'ti-toggle-right', 'ti-toggle-left');
+                        'btn-outline-success', 'btn-outline-secondary', 'ti-toggle-right', 'ti-toggle-left');
                 })
                 .catch(function () {});
         });
@@ -271,7 +266,7 @@ window.mjlDebugModeInit = function () {
                     if (data.csrf_token) { csrfToken = data.csrf_token; }
                     if (!data.ok) { return; }
                     updateToggleBtn(simulateBtn, data.simulate_send === 1,
-                        'btn-warning', 'btn-danger', 'ti-bell', 'ti-bell-off');
+                        'btn-outline-warning', 'btn-outline-secondary', 'ti-bell', 'ti-bell-off');
                 })
                 .catch(function () {});
         });

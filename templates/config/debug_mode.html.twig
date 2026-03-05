@@ -19,7 +19,7 @@
         <div class="d-flex flex-wrap align-items-center gap-3">
             {% if can_update %}
             <button type="button" id="mjl-log-toggle-btn"
-                    class="btn btn-sm {{ extended_log ? 'btn-warning' : 'btn-danger' }}"
+                    class="btn btn-sm {{ extended_log ? 'btn-outline-success' : 'btn-outline-secondary' }}"
                     data-extended-log="{{ extended_log ? '1' : '0' }}"
                     data-i18n-enable="{{ __('Enable events log', 'mattermostjetlag')|e('html_attr') }}"
                     data-i18n-disable="{{ __('Disable events log', 'mattermostjetlag')|e('html_attr') }}">
@@ -27,7 +27,7 @@
                 {{ extended_log ? __('Disable events log', 'mattermostjetlag') : __('Enable events log', 'mattermostjetlag') }}
             </button>
             <button type="button" id="mjl-simulate-toggle-btn"
-                    class="btn btn-sm {{ simulate_send ? 'btn-warning' : 'btn-danger' }}"
+                    class="btn btn-sm {{ simulate_send ? 'btn-outline-warning' : 'btn-outline-secondary' }}"
                     data-simulate-send="{{ simulate_send ? '1' : '0' }}"
                     data-i18n-enable="{{ __('Enable Notify Simulation', 'mattermostjetlag')|e('html_attr') }}"
                     data-i18n-disable="{{ __('Disable Notify Simulation', 'mattermostjetlag')|e('html_attr') }}">
@@ -42,7 +42,7 @@
                 <input type="text" id="mjl-log-search" class="form-control form-control-sm"
                        style="width: 200px;"
                        placeholder="{{ __('Task #', 'mattermostjetlag') }}">
-                <button type="button" id="mjl-log-search-btn" class="btn btn-sm btn-primary">
+                <button type="button" id="mjl-log-search-btn" class="btn btn-sm btn-azure">
                     <i class="ti ti-search me-1"></i>{{ __('Search', 'mattermostjetlag') }}
                 </button>
                 <button type="button" id="mjl-log-search-clear" class="btn btn-sm btn-outline-secondary">
@@ -69,13 +69,15 @@
              data-i18n-status="{{ __('Status', 'mattermostjetlag')|e }}"
              data-i18n-date="{{ __('Date', 'mattermostjetlag')|e }}"
              data-i18n-simulated="{{ __('Simulated', 'mattermostjetlag')|e }}">
-            {# Level-1 header: chevron | target | task# | sends count | last date #}
+            {# Level-1 header: target_id | target | event | subject | rules | date | chevron #}
             <div class="mjl-log-header">
-                <span></span>
+                <span>{{ __('ID', 'mattermostjetlag') }}</span>
                 <span>{{ __('Target', 'mattermostjetlag') }}</span>
-                <span>{{ __('Task #', 'mattermostjetlag') }}</span>
-                <span>{{ __('Sends', 'mattermostjetlag') }}</span>
-                <span>{{ __('Last activity', 'mattermostjetlag') }}</span>
+                <span>{{ __('Event', 'mattermostjetlag') }}</span>
+                <span>{{ __('Subject', 'mattermostjetlag') }}</span>
+                <span>{{ __('Rules', 'mattermostjetlag') }}</span>
+                <span>{{ __('Date', 'mattermostjetlag') }}</span>
+                <span></span>
             </div>
             {# Rows rendered by JS #}
         </div>

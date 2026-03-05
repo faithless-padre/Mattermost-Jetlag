@@ -60,15 +60,15 @@ window.mjlEventJournalInit = function () {
             + '</div>';
 
         sends.forEach(function (s) {
-            var ok          = s.http_status === 200;
+            var ok          = s.http_status >= 200 && s.http_status < 300;
             var isSimulated = s.simulate && s.http_status === 0;
-            var statusClass = ok ? 'bg-success' : (isSimulated ? 'bg-secondary' : 'bg-danger');
-            var statusText  = ok ? '200 OK' : (isSimulated ? i18n.simulated : (s.http_status > 0 ? s.http_status : '—'));
+            var statusClass = ok ? 'bg-success-lt text-success' : (isSimulated ? 'bg-secondary-lt text-secondary' : 'bg-danger-lt text-danger');
+            var statusText  = ok ? s.http_status + ' OK' : (isSimulated ? i18n.simulated : (s.http_status > 0 ? s.http_status : '—'));
             var errAttr     = s.error ? ' title="' + esc(s.error) + '"' : '';
 
             html += '<div class="mjl-ej-send-row"' + errAttr + '>'
                 + '<span class="mjl-ej-send-rule" title="' + esc(s.rule_name) + '">' + esc(s.rule_name) + '</span>'
-                + '<span class="mjl-ej-send-event"><span class="badge bg-primary">' + esc(s.event) + '</span></span>'
+                + '<span class="mjl-ej-send-event"><span class="badge bg-azure-lt text-azure">' + esc(s.event) + '</span></span>'
                 + '<span class="mjl-ej-send-recipient" title="' + esc(s.recipient) + '">' + esc(s.recipient) + '</span>'
                 + '<span class="mjl-ej-send-status"><span class="badge ' + statusClass + '">' + esc(statusText) + '</span></span>'
                 + '<span class="mjl-ej-send-date">' + esc(s.date_creation) + '</span>'
@@ -93,7 +93,7 @@ window.mjlEventJournalInit = function () {
         var row = '<div class="' + rowClass + '" data-ej-key="' + esc(group.key) + '">'
             + '<span class="mjl-ej-chevron"><i class="ti ti-chevron-right"></i></span>'
             + '<span class="mjl-ej-ticket"><strong>' + esc(group.target_id) + '</strong></span>'
-            + '<span class="mjl-ej-target"><i class="ti ti-ticket"></i><span class="badge">' + esc(group.target) + '</span></span>'
+            + '<span class="mjl-ej-target"><i class="ti ti-ticket"></i><span class="badge bg-blue-lt text-blue">' + esc(group.target) + '</span></span>'
             + '<span class="mjl-ej-name"><i class="ti ti-file-text"></i><strong title="' + esc(ticketName) + '">' + esc(ticketName) + '</strong></span>'
             + '<span class="mjl-ej-initiator"><i class="ti ti-user"></i>' + esc(group.initiator || '—') + '</span>'
             + '<span class="mjl-ej-urgency"><i class="ti ti-flame"></i>' + esc(group.urgency || '—') + '</span>'

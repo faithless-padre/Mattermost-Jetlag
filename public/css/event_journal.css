@@ -23,7 +23,7 @@
     margin-bottom: 0.4rem;
     border: 1px solid var(--tblr-border-color, #dee2e6);
     border-radius: 6px;
-    background: var(--tblr-bg-surface-secondary, #f8fafc);
+    background: var(--tblr-bg-surface, #fff);
     overflow: hidden;
 }
 .mjl-ej-header-row > span {
@@ -75,16 +75,17 @@
     font-size: 0.9rem;
 }
 .mjl-ej-row:hover {
-    background: #e8f4ea;
-    border-color: #72b676;
+    background: var(--tblr-success-lt, #d1e7dd);
+    border-color: var(--tblr-success, #2fb344);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .mjl-ej-row.is-open {
     border-radius: 8px 8px 0 0;
     border-bottom-color: transparent;
     margin-bottom: 0;
-    background: #f0f7ff;
-    border-color: #9fc5e8;
+    background: var(--tblr-success-lt, #d1e7dd);
+    border-color: var(--tblr-success, #2fb344);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ---- Chevron ---- */
@@ -103,11 +104,6 @@
 }
 
 /* ---- Level-1 fields ---- */
-.mjl-ej-target .badge {
-    background-color: #cfe2ff;
-    color: #084298;
-    font-weight: 500;
-}
 .mjl-ej-ticket {
     font-size: 0.875rem;
     font-weight: 600;
@@ -127,11 +123,11 @@
 /* ---- Detail panel (level-2) ---- */
 .mjl-ej-detail {
     grid-column: 1 / -1;
-    border: 1px solid #9fc5e8;
+    border: 1px solid var(--tblr-success, #2fb344);
     border-top: none;
     border-radius: 0 0 8px 8px;
     margin-bottom: 0.35rem;
-    background: #f8fbff;
+    background: var(--tblr-bg-surface, #fff);
     overflow: hidden;
 }
 .mjl-ej-detail.mjl-hidden {
@@ -174,8 +170,9 @@
     grid-column: 1 / -1;
     align-items: center;
     padding: 0.3rem 0;
-    border-bottom: 1px solid var(--tblr-border-color-translucent, rgba(0,0,0,0.05));
+    border-bottom: 1px solid var(--tblr-border-color, #dee2e6);
     font-size: 0.8125rem;
+    color: var(--tblr-body-color, #212529);
 }
 .mjl-ej-send-row:last-child {
     border-bottom: none;
@@ -221,9 +218,9 @@
 
 
 /* ---- Alerts ok/fail counter ---- */
-.mjl-ej-count-ok   { color: #2fb344; font-weight: 600; }
+.mjl-ej-count-ok   { color: var(--tblr-success, #2fb344); font-weight: 600; }
 .mjl-ej-count-sep  { color: var(--tblr-body-color-muted, #6c757d); margin: 0 0.15rem; }
-.mjl-ej-count-fail { color: #d63939; font-weight: 600; }
+.mjl-ej-count-fail { color: var(--tblr-danger, #d63939); font-weight: 600; }
 
 /* New rows: smooth appearance */
 .mjl-ej-row.mjl-row-appearing {

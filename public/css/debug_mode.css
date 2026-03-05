@@ -14,18 +14,14 @@
 }
 
 /* ---- Log list (grid) ---- */
-/* Columns: id | target | event | status | type | urgency | priority | ticket# | rules | date | chevron */
+/* Columns: target_id | target | event | subject | rules | date | chevron */
 .mjl-log-list {
     display: grid;
     grid-template-columns:
-        52px
         max-content
         max-content
         max-content
-        max-content
-        max-content
-        max-content
-        minmax(60px, 1fr)
+        minmax(80px, 1fr)
         max-content
         max-content
         24px;
@@ -45,10 +41,10 @@
     align-items: center;
     border: 1px solid var(--tblr-border-color, #dee2e6);
     border-radius: 8px;
-    background: #e6eff7;
+    background: var(--tblr-bg-surface, #fff);
     font-weight: 600;
     font-size: 0.8125rem;
-    color: var(--tblr-body-color, #212529);
+    color: var(--tblr-body-color-muted, #6c757d);
     text-transform: uppercase;
     letter-spacing: 0.02em;
     overflow: hidden;
@@ -82,16 +78,16 @@
 .mjl-log-row > span:first-child { padding-left: 0.5rem; }
 .mjl-log-row > span:last-child  { padding-right: 0.5rem; }
 .mjl-log-row:hover {
-    background: #e8f4ea;
-    border-color: #72b676;
+    background: var(--tblr-success-lt, #d1e7dd);
+    border-color: var(--tblr-success, #2fb344);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .mjl-log-row.is-open {
     border-radius: 8px 8px 0 0;
     border-bottom-color: transparent;
     margin-bottom: 0;
-    background: #f0f7ff;
-    border-color: #9fc5e8;
+    background: var(--tblr-azure-lt, #dce7f9);
+    border-color: var(--tblr-azure, #4299e1);
 }
 
 /* ---- Log row chevron ---- */
@@ -108,35 +104,20 @@
 }
 
 /* ---- Log row fields ---- */
-.mjl-log-id {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--tblr-body-color-muted, #6c757d);
-    white-space: nowrap;
-}
-.mjl-log-target .badge {
-    font-weight: 500;
-    background-color: #cfe2ff;
-    color: #084298;
-}
-.mjl-log-event .badge {
-    font-weight: 500;
-}
 .mjl-log-ticket {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--tblr-body-color-muted, #6c757d);
     white-space: nowrap;
 }
-.mjl-log-date {
+.mjl-log-subject {
     font-size: 0.8125rem;
-    color: var(--tblr-body-color-muted, #6c757d);
+    font-weight: 600;
+    overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
 }
-.mjl-log-status,
-.mjl-log-type,
-.mjl-log-urgency,
-.mjl-log-priority {
+.mjl-log-date {
     font-size: 0.8125rem;
     color: var(--tblr-body-color-muted, #6c757d);
     white-space: nowrap;
@@ -151,7 +132,7 @@
 /* ---- Detail panel (expanded JSON) ---- */
 .mjl-log-detail {
     grid-column: 1 / -1;
-    border: 1px solid #9fc5e8;
+    border: 1px solid var(--tblr-azure, #4299e1);
     border-top: none;
     border-radius: 0 0 8px 8px;
     margin-bottom: 0.35rem;

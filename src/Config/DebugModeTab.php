@@ -59,12 +59,9 @@ class DebugModeTab
                     'target'        => (string) ($row['target'] ?? 'Ticket'),
                     'event'         => $eventLabels[$eventKey] ?? $eventKey,
                     'ticket_id'     => $row['ticket_id'] ? (int) $row['ticket_id'] : null,
+                    'subject'       => (string) ($payloadArr['subject'] ?? ''),
                     'payload'       => (string) ($row['payload'] ?? '{}'),
                     'date_creation' => (string) ($row['date_creation'] ?? ''),
-                    'type'          => (string) ($payloadArr['type'] ?? ''),
-                    'urgency'       => (string) ($payloadArr['urgency'] ?? ''),
-                    'priority'      => (string) ($payloadArr['priority'] ?? ''),
-                    'status'        => (string) ($payloadArr['status'] ?? ''),
                     'rules_count'   => $rulesCount,
                 ];
             }
