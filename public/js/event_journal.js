@@ -95,6 +95,7 @@ window.mjlEventJournalInit = function () {
             + '<span class="mjl-ej-ticket"><strong>' + esc(group.target_id) + '</strong></span>'
             + '<span class="mjl-ej-target"><i class="ti ti-ticket"></i><span class="badge">' + esc(group.target) + '</span></span>'
             + '<span class="mjl-ej-name"><i class="ti ti-file-text"></i><strong title="' + esc(ticketName) + '">' + esc(ticketName) + '</strong></span>'
+            + '<span class="mjl-ej-initiator"><i class="ti ti-user"></i>' + esc(group.initiator || '—') + '</span>'
             + '<span class="mjl-ej-urgency"><i class="ti ti-flame"></i>' + esc(group.urgency || '—') + '</span>'
             + '<span class="mjl-ej-count"><i class="ti ti-bell"></i>' + countHtml + '</span>'
             + '<span class="mjl-ej-date"><i class="ti ti-clock"></i>' + esc(group.last_date) + '</span>'

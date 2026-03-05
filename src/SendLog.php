@@ -64,6 +64,7 @@ class SendLog extends CommonDBTM
         bool $simulate,
         ?string $error,
         ?string $ticketName = null,
+        ?string $initiator = null,
         ?string $urgency = null
     ): void {
         global $DB;
@@ -77,6 +78,7 @@ class SendLog extends CommonDBTM
             'target'        => $target,
             'target_id'     => $targetId,
             'ticket_name'   => $ticketName,
+            'initiator'     => $initiator,
             'urgency'       => $urgency,
             'event'         => $event,
             'rule_id'       => $ruleId,

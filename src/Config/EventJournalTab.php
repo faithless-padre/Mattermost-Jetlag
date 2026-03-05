@@ -68,6 +68,7 @@ class EventJournalTab
                         'target'      => $target,
                         'target_id'   => $targetId,
                         'ticket_name' => (string) ($row['ticket_name'] ?? ''),
+                        'initiator'   => (string) ($row['initiator']   ?? ''),
                         'urgency'     => (string) ($row['urgency'] ?? ''),
                         'count_ok'    => 0,
                         'count_fail'  => 0,

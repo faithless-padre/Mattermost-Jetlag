@@ -11,8 +11,34 @@
 /* chevron | task# | target | name | urgency | ok/fail | last date */
 .mjl-ej-list {
     display: grid;
-    grid-template-columns: 32px max-content max-content 2fr 1fr 1fr 1.5fr;
+    grid-template-columns: 32px max-content max-content 2fr 1fr 1fr 1fr 1.5fr;
     width: 100%;
+}
+
+/* ---- Level-1 header ---- */
+.mjl-ej-header-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    margin-bottom: 0.4rem;
+    border: 1px solid var(--tblr-border-color, #dee2e6);
+    border-radius: 6px;
+    background: var(--tblr-bg-surface-secondary, #f8fafc);
+    overflow: hidden;
+}
+.mjl-ej-header-row > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tblr-body-color-muted, #6c757d);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ---- Level-1 row ---- */
@@ -34,6 +60,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
     padding: 0.6rem 0.75rem;
     font-size: 0.875rem;

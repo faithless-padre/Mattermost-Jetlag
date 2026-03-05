@@ -165,6 +165,7 @@ function plugin_mattermostjetlag_install()
             `target`        varchar(64) NOT NULL DEFAULT 'Ticket',
             `target_id`     int DEFAULT NULL,
             `ticket_name`   varchar(500) DEFAULT NULL,
+            `initiator`     varchar(255) DEFAULT NULL,
             `urgency`       varchar(64) DEFAULT NULL,
             `event`         varchar(64) NOT NULL DEFAULT '',
             `rule_id`       int DEFAULT NULL,
@@ -181,8 +182,11 @@ function plugin_mattermostjetlag_install()
         if (!$DB->fieldExists($sendlogs_table, 'ticket_name')) {
             $DB->doQuery("ALTER TABLE `$sendlogs_table` ADD COLUMN `ticket_name` varchar(500) DEFAULT NULL AFTER `target_id`");
         }
+        if (!$DB->fieldExists($sendlogs_table, 'initiator')) {
+            $DB->doQuery("ALTER TABLE `$sendlogs_table` ADD COLUMN `initiator` varchar(255) DEFAULT NULL AFTER `ticket_name`");
+        }
         if (!$DB->fieldExists($sendlogs_table, 'urgency')) {
-            $DB->doQuery("ALTER TABLE `$sendlogs_table` ADD COLUMN `urgency` varchar(64) DEFAULT NULL AFTER `ticket_name`");
+            $DB->doQuery("ALTER TABLE `$sendlogs_table` ADD COLUMN `urgency` varchar(64) DEFAULT NULL AFTER `initiator`");
         }
     }
 
@@ -235,8 +239,9 @@ function plugin_mattermostjetlag_uninstall()
     global $DB;
 
     $itemtype = NotificationRule::class;
-    if ($DB->tableExists('glpi_criteriafilters')) {
-        $DB->doQuery("DELETE FROM `glpi_criteriafilters` WHERE `itemtype` = " . $DB->quote($itemtype));
+    $cf_table = CriteriaFilter::getTable();
+    if ($DB->tableExists($cf_table)) {
+        $DB->doQuery("DELETE FROM `$cf_table` WHERE `itemtype` = " . $DB->quote($itemtype));
     }
 
     $sendlogs_table = SendLog::getTable();

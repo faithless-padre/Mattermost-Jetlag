@@ -366,7 +366,7 @@ if (isset($_GET['mattermost_ajax']) && $_GET['mattermost_ajax'] === 'export_rule
     Session::checkLoginUser();
     Session::checkRight('config', READ);
 
-    $ids = $_POST['rule_ids'] ?? [];
+    $ids = $_GET['rule_ids'] ?? [];
     if (!is_array($ids)) {
         $ids = [];
     }
