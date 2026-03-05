@@ -1,4 +1,4 @@
-{# Debug Mode tab — event log viewer #}
+{# Debug Mode tab — events journal #}
 <div class="mjl-tab-content">
 {# ═══════ Section header ═══════ #}
 <div class="card border-0 shadow-none p-0 m-0 mt-n2">
@@ -41,7 +41,7 @@
             <form class="d-flex align-items-center gap-2 ms-auto" id="mjl-log-search-form">
                 <input type="text" id="mjl-log-search" class="form-control form-control-sm"
                        style="width: 200px;"
-                       placeholder="{{ __('Ticket #', 'mattermostjetlag') }}">
+                       placeholder="{{ __('Task #', 'mattermostjetlag') }}">
                 <button type="button" id="mjl-log-search-btn" class="btn btn-sm btn-primary">
                     <i class="ti ti-search me-1"></i>{{ __('Search', 'mattermostjetlag') }}
                 </button>
@@ -63,20 +63,19 @@
              data-csrf-token="{{ csrf_token() }}"
              data-i18n-no-logs="{{ __('No events recorded yet.', 'mattermostjetlag')|e }}"
              data-i18n-cleared="{{ __('Log cleared.', 'mattermostjetlag')|e }}"
-             data-i18n-ticket="#">
-            {# Header row #}
+             data-i18n-rule="{{ __('Rule', 'mattermostjetlag')|e }}"
+             data-i18n-event="{{ __('Event', 'mattermostjetlag')|e }}"
+             data-i18n-recipient="{{ __('Recipient', 'mattermostjetlag')|e }}"
+             data-i18n-status="{{ __('Status', 'mattermostjetlag')|e }}"
+             data-i18n-date="{{ __('Date', 'mattermostjetlag')|e }}"
+             data-i18n-simulated="{{ __('Simulated', 'mattermostjetlag')|e }}">
+            {# Level-1 header: chevron | target | task# | sends count | last date #}
             <div class="mjl-log-header">
-                <span>ID</span>
-                <span>{{ __('Target', 'mattermostjetlag') }}</span>
-                <span>{{ __('Event', 'mattermostjetlag') }}</span>
-                <span>{{ __('Status', 'mattermostjetlag') }}</span>
-                <span>{{ __('Type', 'mattermostjetlag') }}</span>
-                <span>{{ __('Urgency', 'mattermostjetlag') }}</span>
-                <span>{{ __('Priority', 'mattermostjetlag') }}</span>
-                <span>{{ __('Ticket', 'mattermostjetlag') }} #</span>
-                <span>{{ __('Rules', 'mattermostjetlag') }}</span>
-                <span>{{ __('Date', 'mattermostjetlag') }}</span>
                 <span></span>
+                <span>{{ __('Target', 'mattermostjetlag') }}</span>
+                <span>{{ __('Task #', 'mattermostjetlag') }}</span>
+                <span>{{ __('Sends', 'mattermostjetlag') }}</span>
+                <span>{{ __('Last activity', 'mattermostjetlag') }}</span>
             </div>
             {# Rows rendered by JS #}
         </div>
@@ -92,7 +91,7 @@
                     <button type="button" class="mjl-page-link" data-page="prev" title="{{ __('Previous', 'mattermostjetlag') }}">
                         <i class="ti ti-chevron-left"></i>
                     </button>
-                    {# page number buttons injected by JS #}
+                    {# page buttons injected by JS #}
                     <button type="button" class="mjl-page-link" data-page="next" title="{{ __('Next', 'mattermostjetlag') }}">
                         <i class="ti ti-chevron-right"></i>
                     </button>

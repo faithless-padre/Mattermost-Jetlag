@@ -63,12 +63,14 @@ function plugin_init_mattermostjetlag()
             'css/rules_list.css',
             'css/editor.css',
             'css/debug_mode.css',
+            'css/event_journal.css',
         ];
         $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['mattermostjetlag'] = [
             'js/connectivity.js',
             'js/rules_list.js',
             'js/editor.js',
             'js/debug_mode.js',
+            'js/event_journal.js',
         ];
     }
 }

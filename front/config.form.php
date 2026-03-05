@@ -541,6 +541,25 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_eve
     exit;
 }
 
+// ── AJAX: Clear send log (Events Journal) ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_send_log') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        global $DB;
+        $table = \GlpiPlugin\Mattermostjetlag\SendLog::getTable();
+        if ($DB->tableExists($table)) {
+            $DB->doQuery("DELETE FROM `$table`");
+        }
+        echo json_encode(['ok' => true, 'csrf_token' => Session::getNewCSRFToken()]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 // ── Form POST: Save config ──
 $config = new Config();
 

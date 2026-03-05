@@ -1,0 +1,62 @@
+{# Events Journal tab #}
+<div class="mjl-tab-content">
+{# ═══════ Header ═══════ #}
+<div class="card border-0 shadow-none p-0 m-0 mt-n2">
+    <div class="card-header mb-3 pt-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h4 class="card-title ms-5">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start bg-blue s-1">
+                <i class="fs-2x ti ti-history"></i>
+            </div>
+            {{ __('Events Journal', 'mattermostjetlag') }}
+        </h4>
+    </div>
+</div>
+
+{# ═══════ Journal grid ═══════ #}
+<div class="mjl-ej-card card border mb-0">
+    <div class="card-body">
+
+        <div id="mjl-ej-list"
+             class="mjl-ej-list mjl-ej-list-root"
+             data-groups="{{ log_groups_json|e('html_attr') }}"
+             data-ajax-url="{{ ajax_url|e('html_attr') }}"
+             data-csrf-token="{{ csrf_token() }}"
+             data-i18n-no-logs="{{ __('No events recorded yet.', 'mattermostjetlag')|e }}"
+             data-i18n-cleared="{{ __('Log cleared.', 'mattermostjetlag')|e }}"
+             data-i18n-rule="{{ __('Rule', 'mattermostjetlag')|e }}"
+             data-i18n-event="{{ __('Event', 'mattermostjetlag')|e }}"
+             data-i18n-recipient="{{ __('Recipient', 'mattermostjetlag')|e }}"
+             data-i18n-status="{{ __('Status', 'mattermostjetlag')|e }}"
+             data-i18n-date="{{ __('Date', 'mattermostjetlag')|e }}"
+             data-i18n-simulated="{{ __('Simulated', 'mattermostjetlag')|e }}">
+            {# Rows rendered by JS #}
+        </div>
+
+        <div class="mjl-ej-footer">
+            <div class="mjl-ej-footer-center">
+                <button id="mjl-ej-show-more" type="button" class="btn btn-sm btn-outline-secondary" style="display:none;">
+                    {{ __('Show more', 'mattermostjetlag') }}
+                </button>
+            </div>
+            <div class="mjl-ej-footer-right">
+                <div class="mjl-paginator mjl-ej-paginator">
+                    <button type="button" class="mjl-page-link" data-page="prev" title="{{ __('Previous', 'mattermostjetlag') }}">
+                        <i class="ti ti-chevron-left"></i>
+                    </button>
+                    {# page buttons injected by JS #}
+                    <button type="button" class="mjl-page-link" data-page="next" title="{{ __('Next', 'mattermostjetlag') }}">
+                        <i class="ti ti-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+if (typeof window.mjlEventJournalInit === 'function') {
+    window.mjlEventJournalInit();
+}
+</script>
+</div>

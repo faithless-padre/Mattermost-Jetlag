@@ -62,7 +62,9 @@ class SendLog extends CommonDBTM
         string $recipient,
         int $httpStatus,
         bool $simulate,
-        ?string $error
+        ?string $error,
+        ?string $ticketName = null,
+        ?string $urgency = null
     ): void {
         global $DB;
 
@@ -74,6 +76,8 @@ class SendLog extends CommonDBTM
         $DB->insert($table, [
             'target'        => $target,
             'target_id'     => $targetId,
+            'ticket_name'   => $ticketName,
+            'urgency'       => $urgency,
             'event'         => $event,
             'rule_id'       => $ruleId,
             'recipient'     => $recipient,

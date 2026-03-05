@@ -3,15 +3,12 @@
  */
 
 /* ---- Log card: same horizontal margin as mjl-rules-toolbar ---- */
-/* Override the general .mjl-tab-content > .card padding rule (rules_list.css:19)
-   which would add double indentation on top of our margin. */
 .mjl-log-card {
     margin-left: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
     margin-right: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
     padding-left: 0;
     padding-right: 0;
 }
-/* Card-body: vertical = py-2, horizontal 10px */
 .mjl-log-card .card-body {
     padding: 0.5rem 10px;
 }
@@ -185,7 +182,7 @@
     font-style: italic;
 }
 
-/* ---- Footer: show-more + paginator (reuses rules_list pattern) ---- */
+/* ---- Footer: show-more + paginator ---- */
 .mjl-log-footer {
     display: flex;
     align-items: center;

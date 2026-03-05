@@ -16,7 +16,7 @@
 .mjl-tab-content .mjl-rules-footer,
 /* Instructions tab: alerts and section headers */
 .mjl-tab-content > .alert,
-.mjl-tab-content > .card:not(:has(.mjl-extended-filter-card)):not(.mjl-rules-toolbar):not(.mjl-log-card) {
+.mjl-tab-content > .card:not(:has(.mjl-extended-filter-card)):not(.mjl-rules-toolbar):not(.mjl-log-card):not(.mjl-ej-card) {
     padding-left: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
     padding-right: calc(var(--tblr-card-spacer-x, 1.25rem) + var(--tblr-page-padding, 1rem));
 }

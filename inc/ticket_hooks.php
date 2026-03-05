@@ -617,7 +617,9 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
                 $recipient,
                 $sendHttpCode,
                 $simulate,
-                $entry['error'] ?? null
+                $entry['error'] ?? null,
+                ($data['subject'] ?? '') !== '' ? (string) $data['subject'] : null,
+                ($data['urgency'] ?? '') !== '' ? (string) $data['urgency'] : null
             );
 
             plugin_mattermostjetlag_log_mattermost_send(
