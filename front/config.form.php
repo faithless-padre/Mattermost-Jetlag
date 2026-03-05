@@ -541,6 +541,54 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_eve
     exit;
 }
 
+// ── AJAX: Poll new event log entries ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'get_event_log') {
+    Session::checkLoginUser();
+    Session::checkRight('config', READ);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        global $DB;
+        $sinceId = max(0, (int) ($_POST['since_id'] ?? 0));
+        $table   = EventLog::getTable();
+        $items   = [];
+        if ($DB->tableExists($table)) {
+            $eventLabels = \GlpiPlugin\Mattermostjetlag\Config\EditorTab::RULE_EVENTS;
+            $rows = $DB->request([
+                'FROM'  => $table,
+                'WHERE' => [['id' => ['>', $sinceId]]],
+                'ORDER' => ['id DESC'],
+                'LIMIT' => 50,
+            ]);
+            foreach ($rows as $row) {
+                $eventKey   = (string) ($row['event'] ?? '');
+                $payloadArr = json_decode((string) ($row['payload'] ?? '{}'), true) ?? [];
+                $rulesCount = is_array($payloadArr['matching_rule_ids'] ?? null)
+                    ? count($payloadArr['matching_rule_ids'])
+                    : 0;
+                $items[] = [
+                    'id'            => (int) $row['id'],
+                    'target'        => (string) ($row['target'] ?? 'Ticket'),
+                    'event'         => $eventLabels[$eventKey] ?? $eventKey,
+                    'ticket_id'     => $row['ticket_id'] ? (int) $row['ticket_id'] : null,
+                    'subject'       => (string) ($payloadArr['subject'] ?? ''),
+                    'payload'       => (string) ($row['payload'] ?? '{}'),
+                    'date_creation' => (string) ($row['date_creation'] ?? ''),
+                    'rules_count'   => $rulesCount,
+                ];
+            }
+        }
+        echo json_encode([
+            'ok'         => true,
+            'items'      => $items,
+            'csrf_token' => Session::getNewCSRFToken(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 // ── AJAX: Clear send log (Events Journal) ──
 if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_send_log') {
     Session::checkLoginUser();

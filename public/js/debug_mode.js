@@ -1,5 +1,5 @@
 /**
- * Debug Mode tab — event log (Graylog style), search, clear, toggles.
+ * Debug Mode tab — event log (Graylog style), search, clear, toggles, live polling.
  */
 window.mjlDebugModeInit = function () {
     'use strict';
@@ -7,8 +7,13 @@ window.mjlDebugModeInit = function () {
     var root = document.querySelector('.mjl-log-list-root');
     if (!root) return;
 
+    var POLL_INTERVAL = 5000; // ms
+
     var fullLogs = [];
     var allLogs  = [];
+    var lastId   = 0;
+    var pollTimer = null;
+    var activeSearch = '';
 
     var ajaxUrl   = root.dataset.ajaxUrl   || '';
     var csrfToken = root.dataset.csrfToken || '';
@@ -19,6 +24,7 @@ window.mjlDebugModeInit = function () {
 
     try { fullLogs = JSON.parse(root.dataset.logs || '[]'); } catch (e) { fullLogs = []; }
     allLogs = fullLogs.slice();
+    lastId  = fullLogs.length > 0 ? fullLogs[0].id : 0;
 
     var clearBtn    = document.getElementById('mjl-log-clear-btn');
     var toggleBtn   = document.getElementById('mjl-log-toggle-btn');
@@ -27,6 +33,21 @@ window.mjlDebugModeInit = function () {
     var searchBtn   = document.getElementById('mjl-log-search-btn');
     var searchClear = document.getElementById('mjl-log-search-clear');
     var searchForm  = document.getElementById('mjl-log-search-form');
+
+    /* ── Live indicator ── */
+    var liveDot = document.getElementById('mjl-live-dot');
+
+    function setLiveState(active) {
+        if (!liveDot) return;
+        liveDot.classList.toggle('mjl-live-dot-active', active);
+        liveDot.classList.toggle('mjl-live-dot-error', false);
+    }
+
+    function setLiveError() {
+        if (!liveDot) return;
+        liveDot.classList.remove('mjl-live-dot-active');
+        liveDot.classList.add('mjl-live-dot-error');
+    }
 
     /* ── Helpers ── */
     function esc(s) {
@@ -39,48 +60,33 @@ window.mjlDebugModeInit = function () {
         try { return JSON.stringify(JSON.parse(raw), null, 2); } catch (e) { return raw || ''; }
     }
 
-    /* ── Render ── */
-    function renderLogs(logs) {
-        root.querySelectorAll('.mjl-tr-row, .mjl-tr-detail, .mjl-tr-empty').forEach(function (el) {
-            el.remove();
-        });
+    function buildRowHtml(log, withAppear) {
+        var idx        = esc(log.id);
+        var rulesClass = log.rules_count > 0 ? 'mjl-tr-val-green' : 'mjl-tr-val-muted';
+        var ticketVal  = log.ticket_id ? '#' + esc(log.ticket_id) : '<span class="mjl-tr-val-muted">—</span>';
+        var subjectVal = log.subject   ? esc(log.subject)         : '<span class="mjl-tr-val-muted">—</span>';
+        var rowClass   = 'mjl-tr-row' + (withAppear ? ' mjl-tr-appearing' : '');
 
-        if (logs.length === 0) {
-            var emptyEl = document.createElement('div');
-            emptyEl.className = 'mjl-tr-empty';
-            emptyEl.textContent = i18n.noLogs;
-            root.appendChild(emptyEl);
-            return;
-        }
+        return '<div class="' + rowClass + '" data-tr-idx="' + idx + '">'
+            + '<span class="mjl-tr-chevron">▶</span>'
+            + '<span class="mjl-tr-ts">' + esc(log.date_creation) + '</span>'
+            + '<span class="mjl-tr-fields">'
+            + '<span class="mjl-tr-kv"><span class="mjl-tr-key">target</span>=<span class="mjl-tr-val-blue">' + esc(log.target) + '</span></span>'
+            + '<span class="mjl-tr-kv"><span class="mjl-tr-key">event</span>=<span class="mjl-tr-val-azure">' + esc(log.event) + '</span></span>'
+            + '<span class="mjl-tr-kv"><span class="mjl-tr-key">ticket</span>=<span class="mjl-tr-val">' + ticketVal + '</span></span>'
+            + '<span class="mjl-tr-kv"><span class="mjl-tr-key">subject</span>=<span class="mjl-tr-val-subj">' + subjectVal + '</span></span>'
+            + '<span class="mjl-tr-kv"><span class="mjl-tr-key">rules</span>=<span class="' + rulesClass + '">' + esc(log.rules_count) + '</span></span>'
+            + '</span>'
+            + '</div>'
+            + '<div class="mjl-tr-detail mjl-hidden" data-tr-detail="' + idx + '">'
+            + '<pre>' + esc(prettyJson(log.payload)) + '</pre>'
+            + '</div>';
+    }
 
-        var html = '';
-        logs.forEach(function (log) {
-            var idx        = esc(log.id);
-            var rulesClass = log.rules_count > 0 ? 'mjl-tr-val-green' : 'mjl-tr-val-muted';
-            var ticketVal  = log.ticket_id ? '#' + esc(log.ticket_id) : '<span class="mjl-tr-val-muted">—</span>';
-            var subjectVal = log.subject   ? esc(log.subject)         : '<span class="mjl-tr-val-muted">—</span>';
-
-            html += '<div class="mjl-tr-row" data-tr-idx="' + idx + '">'
-                + '<span class="mjl-tr-chevron">▶</span>'
-                + '<span class="mjl-tr-ts">' + esc(log.date_creation) + '</span>'
-                + '<span class="mjl-tr-fields">'
-                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">target</span>=<span class="mjl-tr-val-blue">' + esc(log.target) + '</span></span>'
-                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">event</span>=<span class="mjl-tr-val-azure">' + esc(log.event) + '</span></span>'
-                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">ticket</span>=<span class="mjl-tr-val">' + ticketVal + '</span></span>'
-                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">subject</span>=<span class="mjl-tr-val-subj">' + subjectVal + '</span></span>'
-                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">rules</span>=<span class="' + rulesClass + '">' + esc(log.rules_count) + '</span></span>'
-                + '</span>'
-                + '</div>'
-                + '<div class="mjl-tr-detail mjl-hidden" data-tr-detail="' + idx + '">'
-                + '<pre>' + esc(prettyJson(log.payload)) + '</pre>'
-                + '</div>';
-        });
-
-        root.insertAdjacentHTML('beforeend', html);
-
-        root.querySelectorAll('.mjl-tr-row').forEach(function (row) {
-            if (row._mjlBound) return;
-            row._mjlBound = true;
+    /* ── Row click binding ── */
+    function bindNewRows() {
+        root.querySelectorAll('.mjl-tr-row:not([data-mjl-bound])').forEach(function (row) {
+            row.dataset.mjlBound = '1';
             row.addEventListener('click', function () {
                 var id     = row.dataset.trIdx;
                 var detail = root.querySelector('[data-tr-detail="' + id + '"]');
@@ -92,11 +98,50 @@ window.mjlDebugModeInit = function () {
         });
     }
 
+    /* ── Render full list ── */
+    function renderLogs(logs) {
+        root.querySelectorAll('.mjl-tr-row, .mjl-tr-detail, .mjl-tr-empty').forEach(function (el) {
+            el.remove();
+        });
+        if (logs.length === 0) {
+            var emptyEl = document.createElement('div');
+            emptyEl.className = 'mjl-tr-empty';
+            emptyEl.textContent = i18n.noLogs;
+            root.appendChild(emptyEl);
+            return;
+        }
+        var html = '';
+        logs.forEach(function (log) { html += buildRowHtml(log, false); });
+        root.insertAdjacentHTML('beforeend', html);
+        bindNewRows();
+    }
+
+    /* ── Prepend new rows (live) ── */
+    function prependLogs(newLogs) {
+        var empty = root.querySelector('.mjl-tr-empty');
+        if (empty) empty.remove();
+
+        var html = '';
+        newLogs.forEach(function (log) { html += buildRowHtml(log, true); });
+
+        var firstExisting = root.querySelector('.mjl-tr-row');
+        if (firstExisting) {
+            firstExisting.insertAdjacentHTML('beforebegin', html);
+        } else {
+            root.insertAdjacentHTML('beforeend', html);
+        }
+        bindNewRows();
+    }
+
     /* ── Search ── */
+    function matchesSearch(log, q) {
+        return log.ticket_id !== null && String(log.ticket_id).indexOf(q) !== -1;
+    }
+
     function applySearch(query) {
-        var q = (query || '').trim();
-        allLogs = q === '' ? fullLogs.slice() : fullLogs.filter(function (log) {
-            return log.ticket_id !== null && String(log.ticket_id).indexOf(q) !== -1;
+        activeSearch = (query || '').trim();
+        allLogs = activeSearch === '' ? fullLogs.slice() : fullLogs.filter(function (log) {
+            return matchesSearch(log, activeSearch);
         });
         renderLogs(allLogs);
     }
@@ -182,6 +227,8 @@ window.mjlDebugModeInit = function () {
                     if (data.ok) {
                         fullLogs = [];
                         allLogs  = [];
+                        lastId   = 0;
+                        activeSearch = '';
                         if (searchInput) searchInput.value = '';
                         renderLogs([]);
                         if (typeof glpi_toast_info === 'function') {
@@ -193,6 +240,56 @@ window.mjlDebugModeInit = function () {
         });
     }
 
-    /* ── Initial render ── */
+    /* ── Live polling ── */
+    function poll() {
+        var fd = new FormData();
+        fd.append('mattermost_ajax', 'get_event_log');
+        fd.append('_glpi_csrf_token', csrfToken);
+        fd.append('since_id', lastId);
+        fetch(ajaxUrl, { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.csrf_token) { csrfToken = data.csrf_token; }
+                setLiveState(true);
+                if (!data.ok || !Array.isArray(data.items) || data.items.length === 0) {
+                    return;
+                }
+                // items are ordered DESC — reverse to get chronological order for prepend
+                var newItems = data.items.slice().reverse();
+                lastId = data.items[0].id; // highest id (first in DESC list)
+
+                // Prepend to fullLogs (newest first)
+                fullLogs = data.items.concat(fullLogs);
+
+                // If no active search — show new rows live
+                if (activeSearch === '') {
+                    allLogs = fullLogs.slice();
+                    prependLogs(newItems.slice().reverse()); // newest at top after prepend
+                } else {
+                    // Re-filter: new matching rows appear live
+                    var matching = data.items.filter(function (log) {
+                        return matchesSearch(log, activeSearch);
+                    });
+                    allLogs = fullLogs.filter(function (log) {
+                        return matchesSearch(log, activeSearch);
+                    });
+                    if (matching.length > 0) {
+                        prependLogs(matching.slice().reverse());
+                    }
+                }
+            })
+            .catch(function () {
+                setLiveError();
+            });
+    }
+
+    function startPolling() {
+        if (pollTimer) return;
+        setLiveState(true);
+        pollTimer = setInterval(poll, POLL_INTERVAL);
+    }
+
+    /* ── Initial render + start polling ── */
     renderLogs(allLogs);
+    startPolling();
 };

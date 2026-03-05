@@ -10,6 +10,38 @@
     padding-right: 0;
 }
 
+/* ---- Live polling indicator ---- */
+.mjl-live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tblr-body-color-muted, #6c757d);
+    align-self: center;
+    flex-shrink: 0;
+    transition: background 0.3s ease;
+}
+.mjl-live-dot.mjl-live-dot-active {
+    background: var(--tblr-success, #2fb344);
+    animation: mjl-live-pulse 2s ease-in-out infinite;
+}
+.mjl-live-dot.mjl-live-dot-error {
+    background: var(--tblr-danger, #d63939);
+}
+@keyframes mjl-live-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.35; }
+}
+
+/* ── New row appear animation ── */
+.mjl-tr-appearing {
+    animation: mjl-tr-appear 0.4s ease-out forwards;
+}
+@keyframes mjl-tr-appear {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ══════ Graylog style log ══════ */
 .mjl-tr-list {
     background: #0d1117 !important;
