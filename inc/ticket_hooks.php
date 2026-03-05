@@ -520,9 +520,7 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
     $nickname   = ($fields['webhook_bot_nickname'] ?? '') ?: null;
     $avatar     = ($fields['webhook_bot_avatar'] ?? '') ?: null;
 
-    if ($connType !== \GlpiPlugin\Mattermostjetlag\Config::CONNECTION_WEBHOOK || $webhookUrl === '') {
-        return [];
-    }
+    $notConfigured = ($connType !== \GlpiPlugin\Mattermostjetlag\Config::CONNECTION_WEBHOOK || $webhookUrl === '');
 
     $results = [];
 
@@ -598,7 +596,11 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
             $entry['payload'] = $payloadJson;
 
             $sendHttpCode = 0;
-            if ($simulate) {
+            if ($notConfigured) {
+                $entry['ok']    = false;
+                $entry['error'] = 'Not configured';
+                $sendHttpCode   = 666;
+            } elseif ($simulate) {
                 $entry['ok']  = true;
                 $sendHttpCode = 0;
             } else {
@@ -617,12 +619,17 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
                 $recipient,
                 $sendHttpCode,
                 $simulate,
-                $entry['error'] ?? null
+                $entry['error'] ?? null,
+                ($data['subject'] ?? '') !== '' ? (string) $data['subject'] : null,
+                !empty($data['requester_logins']) ? (string) $data['requester_logins'][0] : null,
+                ($data['urgency'] ?? '') !== '' ? (string) $data['urgency'] : null
             );
 
-            plugin_mattermostjetlag_log_mattermost_send(
-                $rule->getID(), $webhookUrl, $payloadJson, $simulate, $entry['ok'], $entry['error'] ?? ''
-            );
+            if (!$notConfigured) {
+                plugin_mattermostjetlag_log_mattermost_send(
+                    $rule->getID(), $webhookUrl, $payloadJson, $simulate, $entry['ok'], $entry['error'] ?? ''
+                );
+            }
             $results[] = $entry;
         }
     }

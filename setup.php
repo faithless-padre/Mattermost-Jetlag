@@ -13,7 +13,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_MATTERMOSTJETLAG_VERSION', '2.0.5');
+define('PLUGIN_MATTERMOSTJETLAG_VERSION', '2.1.0');
 define('PLUGIN_MATTERMOSTJETLAG_MIN_GLPI', '11.0.0');
 define('PLUGIN_MATTERMOSTJETLAG_MAX_GLPI', '12.0.0');
 
@@ -63,12 +63,14 @@ function plugin_init_mattermostjetlag()
             'css/rules_list.css',
             'css/editor.css',
             'css/debug_mode.css',
+            'css/event_journal.css',
         ];
         $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['mattermostjetlag'] = [
             'js/connectivity.js',
             'js/rules_list.js',
             'js/editor.js',
             'js/debug_mode.js',
+            'js/event_journal.js',
         ];
     }
 }

@@ -19,6 +19,7 @@ use GlpiPlugin\Mattermostjetlag\Config\ConnectivityTab;
 use GlpiPlugin\Mattermostjetlag\Config\RulesListTab;
 use GlpiPlugin\Mattermostjetlag\Config\EditorTab;
 use GlpiPlugin\Mattermostjetlag\Config\DebugModeTab;
+use GlpiPlugin\Mattermostjetlag\Config\EventJournalTab;
 use Session;
 
 if (!defined('GLPI_ROOT')) {
@@ -116,6 +117,9 @@ class Config extends CommonDBTM
                 break;
             case 3:
                 EditorTab::render($item);
+                break;
+            case 4:
+                EventJournalTab::render($item);
                 break;
             case 6:
                 \Glpi\Application\View\TemplateRenderer::getInstance()
