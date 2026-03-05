@@ -53,53 +53,15 @@
     </div>
 </div>
 
-<div class="mjl-log-card card border mb-0">
-    <div class="card-body">
-
-        <div id="mjl-log-list"
-             class="mjl-log-list mjl-log-list-root"
-             data-logs="{{ log_items_json|e('html_attr') }}"
-             data-ajax-url="{{ ajax_url|e('html_attr') }}"
-             data-csrf-token="{{ csrf_token() }}"
-             data-i18n-no-logs="{{ __('No events recorded yet.', 'mattermostjetlag')|e }}"
-             data-i18n-cleared="{{ __('Log cleared.', 'mattermostjetlag')|e }}"
-             data-i18n-rule="{{ __('Rule', 'mattermostjetlag')|e }}"
-             data-i18n-event="{{ __('Event', 'mattermostjetlag')|e }}"
-             data-i18n-recipient="{{ __('Recipient', 'mattermostjetlag')|e }}"
-             data-i18n-status="{{ __('Status', 'mattermostjetlag')|e }}"
-             data-i18n-date="{{ __('Date', 'mattermostjetlag')|e }}"
-             data-i18n-simulated="{{ __('Simulated', 'mattermostjetlag')|e }}">
-            {# Level-1 header: target_id | target | event | subject | rules | date | chevron #}
-            <div class="mjl-log-header">
-                <span>{{ __('ID', 'mattermostjetlag') }}</span>
-                <span>{{ __('Target', 'mattermostjetlag') }}</span>
-                <span>{{ __('Event', 'mattermostjetlag') }}</span>
-                <span>{{ __('Subject', 'mattermostjetlag') }}</span>
-                <span>{{ __('Rules', 'mattermostjetlag') }}</span>
-                <span>{{ __('Date', 'mattermostjetlag') }}</span>
-                <span></span>
-            </div>
-            {# Rows rendered by JS #}
-        </div>
-
-        <div class="mjl-log-footer">
-            <div class="mjl-log-footer-center">
-                <button id="mjl-log-show-more" type="button" class="btn btn-sm btn-outline-secondary" style="display:none;">
-                    {{ __('Show more', 'mattermostjetlag') }}
-                </button>
-            </div>
-            <div class="mjl-log-footer-right">
-                <div class="mjl-paginator mjl-log-paginator">
-                    <button type="button" class="mjl-page-link" data-page="prev" title="{{ __('Previous', 'mattermostjetlag') }}">
-                        <i class="ti ti-chevron-left"></i>
-                    </button>
-                    {# page buttons injected by JS #}
-                    <button type="button" class="mjl-page-link" data-page="next" title="{{ __('Next', 'mattermostjetlag') }}">
-                        <i class="ti ti-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
+<div class="mjl-log-card card border mb-0" style="overflow: hidden;">
+    <div id="mjl-log-list"
+         class="mjl-tr-list mjl-log-list-root"
+         data-logs="{{ log_items_json|e('html_attr') }}"
+         data-ajax-url="{{ ajax_url|e('html_attr') }}"
+         data-csrf-token="{{ csrf_token() }}"
+         data-i18n-no-logs="{{ __('No events recorded yet.', 'mattermostjetlag')|e }}"
+         data-i18n-cleared="{{ __('Log cleared.', 'mattermostjetlag')|e }}">
+        {# Rendered by JS #}
     </div>
 </div>
 

@@ -1,5 +1,5 @@
 /**
- * Debug Mode tab — event log list, expand/collapse, search, pagination, clear.
+ * Debug Mode tab — event log (Graylog style), search, clear, toggles.
  */
 window.mjlDebugModeInit = function () {
     'use strict';
@@ -7,33 +7,26 @@ window.mjlDebugModeInit = function () {
     var root = document.querySelector('.mjl-log-list-root');
     if (!root) return;
 
-    var PER_PAGE  = 15;
-    var fullLogs  = [];   // all logs from server
-    var allLogs   = [];   // filtered set
-    var totalPages = 1;
-    var currentPage = 1;
+    var fullLogs = [];
+    var allLogs  = [];
 
-    var ajaxUrl   = root.dataset.ajaxUrl    || '';
-    var csrfToken = root.dataset.csrfToken  || '';
+    var ajaxUrl   = root.dataset.ajaxUrl   || '';
+    var csrfToken = root.dataset.csrfToken || '';
     var i18n = {
-        noLogs:   root.dataset.i18nNoLogs   || 'No events recorded yet.',
-        cleared:  root.dataset.i18nCleared  || 'Log cleared.',
-        ticket:   root.dataset.i18nTicket   || '#',
+        noLogs:  root.dataset.i18nNoLogs  || 'No events recorded yet.',
+        cleared: root.dataset.i18nCleared || 'Log cleared.',
     };
 
     try { fullLogs = JSON.parse(root.dataset.logs || '[]'); } catch (e) { fullLogs = []; }
-    allLogs    = fullLogs.slice();
-    totalPages = Math.max(1, Math.ceil(allLogs.length / PER_PAGE));
+    allLogs = fullLogs.slice();
 
-    var listEl      = document.getElementById('mjl-log-list');
-    var showMoreBtn = document.getElementById('mjl-log-show-more');
-    var paginator   = document.querySelector('.mjl-log-paginator');
-    var clearBtn      = document.getElementById('mjl-log-clear-btn');
-    var toggleBtn     = document.getElementById('mjl-log-toggle-btn');
-    var simulateBtn   = document.getElementById('mjl-simulate-toggle-btn');
+    var clearBtn    = document.getElementById('mjl-log-clear-btn');
+    var toggleBtn   = document.getElementById('mjl-log-toggle-btn');
+    var simulateBtn = document.getElementById('mjl-simulate-toggle-btn');
     var searchInput = document.getElementById('mjl-log-search');
     var searchBtn   = document.getElementById('mjl-log-search-btn');
     var searchClear = document.getElementById('mjl-log-search-clear');
+    var searchForm  = document.getElementById('mjl-log-search-form');
 
     /* ── Helpers ── */
     function esc(s) {
@@ -42,81 +35,55 @@ window.mjlDebugModeInit = function () {
         return d.innerHTML;
     }
 
-    function buildPair(log, withAppear) {
-        var rowClass = 'mjl-log-row' + (withAppear ? ' mjl-row-appearing' : '');
-        var rulesCount = log.rules_count != null ? log.rules_count : 0;
-        var rulesBadge = '<span class="badge ' + (rulesCount > 0 ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary') + '">'
-            + esc(rulesCount) + '</span>';
-
-        var row = '<div class="' + rowClass + '" data-log-idx="' + esc(log.id) + '">'
-            + '<span class="mjl-log-ticket">' + (log.ticket_id ? esc(log.ticket_id) : '—') + '</span>'
-            + '<span class="mjl-log-target"><span class="badge bg-blue-lt text-blue">' + esc(log.target) + '</span></span>'
-            + '<span class="mjl-log-event"><span class="badge bg-azure-lt text-azure">' + esc(log.event) + '</span></span>'
-            + '<span class="mjl-log-subject" title="' + esc(log.subject) + '">' + (log.subject ? esc(log.subject) : '—') + '</span>'
-            + '<span class="mjl-log-rules">' + rulesBadge + '</span>'
-            + '<span class="mjl-log-date">' + esc(log.date_creation) + '</span>'
-            + '<span class="mjl-log-chevron"><i class="ti ti-chevron-right"></i></span>'
-            + '</div>';
-
-        var detail = '<div class="mjl-log-detail mjl-hidden" data-log-detail="' + esc(log.id) + '">'
-            + '<pre class="mjl-log-json">' + esc(prettyJson(log.payload)) + '</pre>'
-            + '</div>';
-
-        return row + detail;
-    }
-
     function prettyJson(raw) {
-        try {
-            return JSON.stringify(JSON.parse(raw), null, 2);
-        } catch (e) {
-            return raw || '';
-        }
+        try { return JSON.stringify(JSON.parse(raw), null, 2); } catch (e) { return raw || ''; }
     }
 
-    function clearRows() {
-        listEl.querySelectorAll('.mjl-log-row, .mjl-log-detail, .mjl-log-empty').forEach(function (el) {
+    /* ── Render ── */
+    function renderLogs(logs) {
+        root.querySelectorAll('.mjl-tr-row, .mjl-tr-detail, .mjl-tr-empty').forEach(function (el) {
             el.remove();
         });
-    }
 
-    function showEmpty() {
-        var div = document.createElement('div');
-        div.className = 'mjl-log-empty';
-        div.style.gridColumn = '1 / -1';
-        div.textContent = i18n.noLogs;
-        listEl.appendChild(div);
-    }
-
-    function renderPage(page, animateNew) {
-        var start = (page - 1) * PER_PAGE;
-        var batch = allLogs.slice(start, start + PER_PAGE);
-        var html = '';
-        batch.forEach(function (log) { html += buildPair(log, animateNew); });
-        listEl.insertAdjacentHTML('beforeend', html);
-        bindRowClicks();
-    }
-
-    function goToPage(page) {
-        page = Math.max(1, Math.min(page, totalPages));
-        currentPage = page;
-        clearRows();
-        if (allLogs.length === 0) {
-            showEmpty();
-        } else {
-            renderPage(page, false);
+        if (logs.length === 0) {
+            var emptyEl = document.createElement('div');
+            emptyEl.className = 'mjl-tr-empty';
+            emptyEl.textContent = i18n.noLogs;
+            root.appendChild(emptyEl);
+            return;
         }
-        updatePaginator();
-        updateShowMore();
-    }
 
-    /* ── Row expand/collapse ── */
-    function bindRowClicks() {
-        listEl.querySelectorAll('.mjl-log-row').forEach(function (row) {
+        var html = '';
+        logs.forEach(function (log) {
+            var idx        = esc(log.id);
+            var rulesClass = log.rules_count > 0 ? 'mjl-tr-val-green' : 'mjl-tr-val-muted';
+            var ticketVal  = log.ticket_id ? '#' + esc(log.ticket_id) : '<span class="mjl-tr-val-muted">—</span>';
+            var subjectVal = log.subject   ? esc(log.subject)         : '<span class="mjl-tr-val-muted">—</span>';
+
+            html += '<div class="mjl-tr-row" data-tr-idx="' + idx + '">'
+                + '<span class="mjl-tr-chevron">▶</span>'
+                + '<span class="mjl-tr-ts">' + esc(log.date_creation) + '</span>'
+                + '<span class="mjl-tr-fields">'
+                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">target</span>=<span class="mjl-tr-val-blue">' + esc(log.target) + '</span></span>'
+                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">event</span>=<span class="mjl-tr-val-azure">' + esc(log.event) + '</span></span>'
+                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">ticket</span>=<span class="mjl-tr-val">' + ticketVal + '</span></span>'
+                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">subject</span>=<span class="mjl-tr-val-subj">' + subjectVal + '</span></span>'
+                + '<span class="mjl-tr-kv"><span class="mjl-tr-key">rules</span>=<span class="' + rulesClass + '">' + esc(log.rules_count) + '</span></span>'
+                + '</span>'
+                + '</div>'
+                + '<div class="mjl-tr-detail mjl-hidden" data-tr-detail="' + idx + '">'
+                + '<pre>' + esc(prettyJson(log.payload)) + '</pre>'
+                + '</div>';
+        });
+
+        root.insertAdjacentHTML('beforeend', html);
+
+        root.querySelectorAll('.mjl-tr-row').forEach(function (row) {
             if (row._mjlBound) return;
             row._mjlBound = true;
             row.addEventListener('click', function () {
-                var id = row.dataset.logIdx;
-                var detail = listEl.querySelector('[data-log-detail="' + id + '"]');
+                var id     = row.dataset.trIdx;
+                var detail = root.querySelector('[data-tr-detail="' + id + '"]');
                 if (!detail) return;
                 var open = row.classList.contains('is-open');
                 row.classList.toggle('is-open', !open);
@@ -128,15 +95,10 @@ window.mjlDebugModeInit = function () {
     /* ── Search ── */
     function applySearch(query) {
         var q = (query || '').trim();
-        if (q === '') {
-            allLogs = fullLogs.slice();
-        } else {
-            allLogs = fullLogs.filter(function (log) {
-                return log.ticket_id !== null && String(log.ticket_id).indexOf(q) !== -1;
-            });
-        }
-        totalPages = Math.max(1, Math.ceil(allLogs.length / PER_PAGE));
-        goToPage(1);
+        allLogs = q === '' ? fullLogs.slice() : fullLogs.filter(function (log) {
+            return log.ticket_id !== null && String(log.ticket_id).indexOf(q) !== -1;
+        });
+        renderLogs(allLogs);
     }
 
     if (searchBtn) {
@@ -144,7 +106,6 @@ window.mjlDebugModeInit = function () {
             applySearch(searchInput ? searchInput.value : '');
         });
     }
-    var searchForm = document.getElementById('mjl-log-search-form');
     if (searchForm) {
         searchForm.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -158,68 +119,10 @@ window.mjlDebugModeInit = function () {
         });
     }
 
-    /* ── Show more ── */
-    if (showMoreBtn) {
-        showMoreBtn.addEventListener('click', function () {
-            if (currentPage >= totalPages) return;
-            currentPage++;
-            renderPage(currentPage, true);
-            updatePaginator();
-            updateShowMore();
-        });
-    }
-
-    /* ── Paginator ── */
-    function updatePaginator() {
-        if (!paginator) return;
-        var prevBtn = paginator.querySelector('[data-page="prev"]');
-        var nextBtn = paginator.querySelector('[data-page="next"]');
-        paginator.querySelectorAll('[data-page-num]').forEach(function (b) { b.remove(); });
-
-        var fragment = document.createDocumentFragment();
-        var maxVisible = 5;
-        var half = Math.floor(maxVisible / 2);
-        var start = Math.max(1, currentPage - half);
-        var end   = Math.min(totalPages, start + maxVisible - 1);
-        if (end - start + 1 < maxVisible) {
-            start = Math.max(1, end - maxVisible + 1);
-        }
-        for (var p = start; p <= end; p++) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'mjl-page-link' + (p === currentPage ? ' active' : '');
-            btn.dataset.pageNum = p;
-            btn.textContent = p;
-            (function (pg) {
-                btn.addEventListener('click', function () { goToPage(pg); });
-            }(p));
-            fragment.appendChild(btn);
-        }
-
-        paginator.insertBefore(fragment, nextBtn);
-
-        if (prevBtn) prevBtn.classList.toggle('disabled', currentPage <= 1);
-        if (nextBtn) nextBtn.classList.toggle('disabled', currentPage >= totalPages);
-    }
-
-    function updateShowMore() {
-        if (!showMoreBtn) return;
-        showMoreBtn.style.display = (currentPage >= totalPages) ? 'none' : '';
-    }
-
-    /* ── Wire paginator prev/next ── */
-    if (paginator) {
-        var prevBtn = paginator.querySelector('[data-page="prev"]');
-        var nextBtn = paginator.querySelector('[data-page="next"]');
-        if (prevBtn) prevBtn.addEventListener('click', function () { goToPage(currentPage - 1); });
-        if (nextBtn) nextBtn.addEventListener('click', function () { goToPage(currentPage + 1); });
-    }
-
+    /* ── Toggle helpers ── */
     function updateToggleBtn(btn, enabled, onClass, offClass, onIcon, offIcon) {
         var icon = btn.querySelector('i');
-        if (icon) {
-            icon.className = 'ti ' + (enabled ? onIcon : offIcon) + ' me-1';
-        }
+        if (icon) { icon.className = 'ti ' + (enabled ? onIcon : offIcon) + ' me-1'; }
         var labelText = enabled
             ? (btn.dataset.i18nDisable || 'Disable')
             : (btn.dataset.i18nEnable  || 'Enable');
@@ -227,13 +130,8 @@ window.mjlDebugModeInit = function () {
         for (var i = nodes.length - 1; i >= 0; i--) {
             if (nodes[i].nodeType === 3) { nodes[i].textContent = labelText; break; }
         }
-        if (enabled) {
-            btn.classList.remove(offClass);
-            btn.classList.add(onClass);
-        } else {
-            btn.classList.remove(onClass);
-            btn.classList.add(offClass);
-        }
+        if (enabled) { btn.classList.remove(offClass); btn.classList.add(onClass); }
+        else         { btn.classList.remove(onClass);  btn.classList.add(offClass); }
     }
 
     /* ── Toggle extended log ── */
@@ -284,13 +182,8 @@ window.mjlDebugModeInit = function () {
                     if (data.ok) {
                         fullLogs = [];
                         allLogs  = [];
-                        totalPages = 1;
-                        currentPage = 1;
                         if (searchInput) searchInput.value = '';
-                        clearRows();
-                        showEmpty();
-                        updatePaginator();
-                        updateShowMore();
+                        renderLogs([]);
                         if (typeof glpi_toast_info === 'function') {
                             glpi_toast_info(i18n.cleared);
                         }
@@ -301,5 +194,5 @@ window.mjlDebugModeInit = function () {
     }
 
     /* ── Initial render ── */
-    goToPage(1);
+    renderLogs(allLogs);
 };
