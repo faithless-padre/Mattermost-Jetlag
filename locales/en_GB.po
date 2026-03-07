@@ -638,6 +638,14 @@ msgid "Ticket Created"
 msgstr "Ticket Created"
 
 #: src/Config/EditorTab.php
+msgid "Ticket Deleted"
+msgstr "Ticket Deleted"
+
+#: src/Config/EditorTab.php
+msgid "Ticket Updated (other)"
+msgstr "Ticket Updated (other)"
+
+#: src/Config/EditorTab.php
 msgid "Ticket Commented"
 msgstr "Ticket Commented"
 

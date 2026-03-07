@@ -638,6 +638,14 @@ msgid "Ticket Created"
 msgstr "Заявка создана"
 
 #: src/Config/EditorTab.php
+msgid "Ticket Deleted"
+msgstr "Заявка удалена"
+
+#: src/Config/EditorTab.php
+msgid "Ticket Updated (other)"
+msgstr "Заявка изменена (прочее)"
+
+#: src/Config/EditorTab.php
 msgid "Ticket Commented"
 msgstr "Заявка прокомментирована"
 

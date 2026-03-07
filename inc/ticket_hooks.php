@@ -40,6 +40,7 @@ function plugin_mattermostjetlag_map_action_to_rule_event(string $action): ?stri
         'solution'          => 'solution',
         'solution_approved' => 'solution_approved',
         'solution_rejected' => 'solution_rejected',
+        'delete'            => 'delete',
     ];
     return $mapping[$action] ?? null;
 }
@@ -650,6 +651,25 @@ function plugin_mattermostjetlag_ticket_is_too_fresh(CommonDBTM $ticket): bool
 
 // ── Hooks ──
 
+function plugin_mattermostjetlag_pre_item_delete_Ticket(CommonDBTM $item): void
+{
+    $action = 'delete';
+    $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+    $data = plugin_mattermostjetlag_build_ticket_log_data($item, $action);
+    if (empty($data)) {
+        return;
+    }
+    $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+    if (empty($matchingRules)) {
+        $data['matching_rules_note'] = 'no matching rules';
+    } else {
+        $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+    }
+    plugin_mattermostjetlag_log_debug('pre_item_delete_Ticket', $action, $item, null, $data);
+    plugin_mattermostjetlag_log_ticket($data);
+}
+
 function plugin_mattermostjetlag_item_add_Ticket(CommonDBTM $item): void
 {
     $action = 'create';
@@ -674,8 +694,7 @@ function plugin_mattermostjetlag_item_update_Ticket(CommonDBTM $item): void
     if (plugin_mattermostjetlag_ticket_is_too_fresh($item)) {
         return;
     }
-    $newStatus = (int) ($item->input['status'] ?? 0);
-    if ($newStatus > 0) {
+    if (in_array('status', $item->updates ?? [])) {
         $actions = ['status_changed'];
     } else {
         $actions = ['update'];

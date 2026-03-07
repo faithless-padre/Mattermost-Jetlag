@@ -31,6 +31,8 @@ class EditorTab
         'solution'          => 'Solution Proposed',
         'solution_approved' => 'Solution Approved',
         'solution_rejected' => 'Solution Rejected',
+        'delete'            => 'Ticket Deleted',
+        'update'            => 'Ticket Updated (other)',
     ];
 
     public const RULE_ACTIVE_OPTIONS = [
