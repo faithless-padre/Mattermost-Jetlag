@@ -721,6 +721,10 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test
                         'id'     => $solId,
                         'status' => 4, // ITILSolution::REFUSED
                     ]);
+                    // Direct ITILSolution update does not reset the ticket status.
+                    // Move ticket back to Assigned so a new solution can be proposed.
+                    $t = new Ticket();
+                    $t->update(['id' => $ticketId, 'status' => 2]); // CommonITILObject::ASSIGNED
                 }
                 break;
 
@@ -736,6 +740,9 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test
 
             case 'delete_ticket':
                 $ticket = new Ticket();
+                if (!$ticket->getFromDB($ticketId)) {
+                    throw new \RuntimeException('Ticket #' . $ticketId . ' not found');
+                }
                 $ticket->delete(['id' => $ticketId]);
                 break;
 
