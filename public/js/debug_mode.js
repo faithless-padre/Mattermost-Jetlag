@@ -292,4 +292,210 @@ window.mjlDebugModeInit = function () {
     /* ── Initial render + start polling ── */
     renderLogs(allLogs);
     startPolling();
+
+    /* ══════════════════════════════════════
+       Self-Test
+    ══════════════════════════════════════ */
+    var selfTestBtn     = document.getElementById('mjl-self-test-btn');
+    var selfTestConfirm = document.getElementById('mjl-self-test-confirm');
+    var selfTestModal   = document.getElementById('mjl-self-test-modal');
+    var stProgress      = document.getElementById('mjl-self-test-progress');
+    var stBar           = document.getElementById('mjl-st-bar');
+    var stLabel         = document.getElementById('mjl-st-label');
+
+    if (!selfTestConfirm) return;
+
+    var ST_STEPS = [
+        { key: 'create',           label: 'Creating test ticket',      delay: 0     },
+        { key: 'add_observer',     label: 'Adding observer (tech)',     delay: 12000 },
+        { key: 'add_followup',     label: 'Adding comment',             delay: 3000  },
+        { key: 'request_approval', label: 'Requesting approval',        delay: 3000  },
+        { key: 'reject_approval',  label: 'Rejecting approval',         delay: 3000  },
+        { key: 'request_approval', label: 'Re-requesting approval',     delay: 3000  },
+        { key: 'approve',          label: 'Approving',                  delay: 3000  },
+        { key: 'add_solution',     label: 'Proposing solution',         delay: 3000  },
+        { key: 'reject_solution',  label: 'Rejecting solution',         delay: 3000  },
+        { key: 'add_solution',     label: 'Re-proposing solution',      delay: 3000  },
+        { key: 'approve_solution', label: 'Approving solution',         delay: 3000  },
+        { key: 'delete_ticket',    label: 'Cleaning up',                delay: 3000  },
+    ];
+    var ST_TOTAL = ST_STEPS.length;
+
+    var stRunning  = false;
+    var stTicketId = 0;
+    var stTechId   = 0;
+    var stValId    = 0;
+    var stSolId    = 0;
+
+    function stSetProgress(stepIdx, label) {
+        if (!stBar || !stLabel || !stProgress) return;
+        var pct = Math.round((stepIdx / ST_TOTAL) * 100);
+        stBar.style.width = pct + '%';
+        stLabel.textContent = 'Step ' + stepIdx + '/' + ST_TOTAL + ': ' + label;
+    }
+
+    function stShow() {
+        if (stProgress) { stProgress.classList.remove('d-none'); stProgress.classList.add('d-flex'); }
+        if (selfTestBtn) selfTestBtn.disabled = true;
+        if (stBar) stBar.style.width = '0%';
+    }
+
+    function stHide() {
+        if (stProgress) { stProgress.classList.add('d-none'); stProgress.classList.remove('d-flex'); }
+        if (selfTestBtn) selfTestBtn.disabled = false;
+        stRunning  = false;
+        stTicketId = 0;
+        stTechId   = 0;
+        stValId    = 0;
+        stSolId    = 0;
+    }
+
+    function stPost(action, extra) {
+        var fd = new FormData();
+        fd.append('mattermost_ajax', action);
+        fd.append('_glpi_csrf_token', csrfToken);
+        if (extra) {
+            Object.keys(extra).forEach(function (k) { fd.append(k, extra[k]); });
+        }
+        return fetch(ajaxUrl, { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.csrf_token) csrfToken = data.csrf_token;
+                return data;
+            });
+    }
+
+    /* ── Self-Test: final poll + report ── */
+    function stRenderReport(ticketId) {
+        var EXPECTED = [
+            'create', 'members_change', 'followup',
+            'approval', 'rejected', 'approved',
+            'status_changed', 'solution', 'solution_rejected',
+            'solution_approved', 'delete',
+        ];
+
+        var ticketLogs = fullLogs.filter(function (log) {
+            return log.ticket_id !== null && String(log.ticket_id) === String(ticketId);
+        });
+
+        var found = {};
+        ticketLogs.forEach(function (log) { found[log.event_key || log.event] = true; });
+
+        var passed = 0;
+        var badgesHtml = EXPECTED.map(function (ev) {
+            var ok    = !!found[ev];
+            if (ok) passed++;
+            var color = ok ? '#56d364' : '#f85149';
+            return '<span style="color:' + color + ';white-space:nowrap;margin-right:1.1rem;">'
+                + (ok ? '✓' : '✗') + '&nbsp;' + esc(ev) + '</span>';
+        }).join('');
+
+        var allOk       = passed === EXPECTED.length;
+        var accentColor = allOk ? '#56d364' : '#e3b341';
+        var statusText  = allOk ? 'ALL PASSED' : (passed + '/' + EXPECTED.length + ' detected');
+
+        var html = '<div class="mjl-st-report" style="border-left-color:' + accentColor + ';">'
+            + '<div class="mjl-st-report-title">'
+            + '▷ SELF-TEST &nbsp;'
+            + '<span class="mjl-st-report-ticket">ticket&nbsp;#' + esc(ticketId) + '</span>'
+            + ' &mdash; <span style="color:' + accentColor + ';">' + esc(statusText) + '</span>'
+            + '</div>'
+            + '<div class="mjl-st-report-events">' + badgesHtml + '</div>'
+            + '</div>';
+
+        var empty = root.querySelector('.mjl-tr-empty');
+        if (empty) empty.remove();
+
+        var anchor = root.querySelector('.mjl-tr-row, .mjl-st-report');
+        if (anchor) {
+            anchor.insertAdjacentHTML('beforebegin', html);
+        } else {
+            root.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    function stFinalPollAndReport(ticketId) {
+        var fd = new FormData();
+        fd.append('mattermost_ajax', 'get_event_log');
+        fd.append('_glpi_csrf_token', csrfToken);
+        fd.append('since_id', lastId);
+        fetch(ajaxUrl, { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.csrf_token) csrfToken = data.csrf_token;
+                if (data.ok && Array.isArray(data.items) && data.items.length > 0) {
+                    var newItems = data.items.slice().reverse();
+                    lastId = data.items[0].id;
+                    fullLogs = data.items.concat(fullLogs);
+                    if (activeSearch === '') {
+                        allLogs = fullLogs.slice();
+                        prependLogs(newItems.slice().reverse());
+                    }
+                }
+                stRenderReport(ticketId);
+            })
+            .catch(function () { stRenderReport(ticketId); });
+    }
+
+    function stRunStep(idx) {
+        if (idx >= ST_TOTAL) {
+            var finishTicketId = stTicketId;
+            stHide();
+            // Wait for last GLPI events to arrive, then poll once and render report
+            setTimeout(function () { stFinalPollAndReport(finishTicketId); }, 6000);
+            return;
+        }
+
+        var step = ST_STEPS[idx];
+        stSetProgress(idx + 1, step.label);
+
+        function execute() {
+            var promise;
+            if (step.key === 'create') {
+                promise = stPost('self_test_start').then(function (data) {
+                    if (!data.ok) throw new Error(data.error || 'Step failed');
+                    stTicketId = data.ticket_id;
+                    stTechId   = data.tech_id || 0;
+                });
+            } else {
+                var extra = { step: step.key, ticket_id: stTicketId, tech_id: stTechId };
+                if (step.key === 'reject_approval' || step.key === 'approve') extra.val_id = stValId;
+                if (step.key === 'reject_solution' || step.key === 'approve_solution') extra.sol_id = stSolId;
+                promise = stPost('self_test_step', extra).then(function (data) {
+                    if (!data.ok) throw new Error(data.error || 'Step failed');
+                    if (data.val_id) stValId = data.val_id;
+                    if (data.sol_id) stSolId = data.sol_id;
+                });
+            }
+
+            promise
+                .then(function () { stRunStep(idx + 1); })
+                .catch(function (err) {
+                    stHide();
+                    if (typeof glpi_toast_error === 'function') {
+                        glpi_toast_error('Self-Test error at step "' + step.label + '": ' + err.message);
+                    }
+                });
+        }
+
+        if (step.delay > 0) {
+            setTimeout(execute, step.delay);
+        } else {
+            execute();
+        }
+    }
+
+    selfTestConfirm.addEventListener('click', function () {
+        if (stRunning) return;
+        stRunning = true;
+
+        // Close modal
+        if (selfTestModal && window.bootstrap) {
+            var bsModal = bootstrap.Modal.getInstance(selfTestModal);
+            if (bsModal) bsModal.hide();
+        }
+
+        stShow();
+        stRunStep(0);
+    });
 };

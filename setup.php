@@ -13,7 +13,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_MATTERMOSTJETLAG_VERSION', '2.1.0');
+define('PLUGIN_MATTERMOSTJETLAG_VERSION', '2.1.4');
 define('PLUGIN_MATTERMOSTJETLAG_MIN_GLPI', '11.0.0');
 define('PLUGIN_MATTERMOSTJETLAG_MAX_GLPI', '12.0.0');
 
@@ -45,6 +45,13 @@ function plugin_init_mattermostjetlag()
         'Ticket'           => 'plugin_mattermostjetlag_item_update_Ticket',
         'TicketValidation' => 'plugin_mattermostjetlag_item_update_TicketValidation',
         'ITILSolution'     => 'plugin_mattermostjetlag_item_update_ITILSolution',
+    ];
+    $PLUGIN_HOOKS['pre_item_delete']['mattermostjetlag'] = [
+        'Ticket' => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
+    ];
+    // Force-purge (delete with $force=true) fires pre_item_purge, not pre_item_delete
+    $PLUGIN_HOOKS['pre_item_purge']['mattermostjetlag'] = [
+        'Ticket' => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
     ];
 
     // Config page (Setup > Plugins > Mattermost Jetlag or direct link)

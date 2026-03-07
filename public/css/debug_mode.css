@@ -10,6 +10,27 @@
     padding-right: 0;
 }
 
+/* ---- Self-Test progress bar ---- */
+.mjl-st-bar-wrap {
+    width: 140px;
+    height: 6px;
+    background: var(--tblr-border-color, #dee2e6);
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.mjl-st-bar {
+    height: 100%;
+    background: var(--tblr-info, #4299e1);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+.mjl-st-label {
+    font-size: 0.78rem;
+    color: var(--tblr-body-color-muted, #6c757d);
+    white-space: nowrap;
+}
+
 /* ---- Live polling indicator ---- */
 .mjl-live-dot {
     display: inline-block;
@@ -121,4 +142,27 @@
     text-align: center;
     color: #6b7280;
     font-style: italic;
+}
+
+/* ── Self-Test Report row ── */
+.mjl-st-report {
+    border-left: 3px solid #e3b341;
+    background: #161b22 !important;
+    padding: 0.6rem 1rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+.mjl-st-report-title {
+    font-weight: 700;
+    color: #8b949e;
+    margin-bottom: 0.3rem;
+}
+.mjl-st-report-ticket {
+    color: #79c0ff;
+    font-weight: 400;
+}
+.mjl-st-report-events {
+    display: flex;
+    flex-wrap: wrap;
 }

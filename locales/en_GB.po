@@ -634,28 +634,36 @@ msgid "Ticket"
 msgstr "Ticket"
 
 #: src/Config/EditorTab.php
-msgid "Create"
-msgstr "Create"
+msgid "Ticket Created"
+msgstr "Ticket Created"
 
 #: src/Config/EditorTab.php
-msgid "Add Comment"
-msgstr "Add Comment"
+msgid "Ticket Deleted"
+msgstr "Ticket Deleted"
 
 #: src/Config/EditorTab.php
-msgid "Send for Approval"
-msgstr "Send for Approval"
+msgid "Ticket Updated (other)"
+msgstr "Ticket Updated (other)"
 
 #: src/Config/EditorTab.php
-msgid "Approval Granted"
-msgstr "Approval Granted"
+msgid "Ticket Commented"
+msgstr "Ticket Commented"
 
 #: src/Config/EditorTab.php
-msgid "Approval Rejected"
-msgstr "Approval Rejected"
+msgid "Approval Requested"
+msgstr "Approval Requested"
 
 #: src/Config/EditorTab.php
-msgid "Status changed"
-msgstr "Status changed"
+msgid "Ticket Approved"
+msgstr "Ticket Approved"
+
+#: src/Config/EditorTab.php
+msgid "Ticket Rejected"
+msgstr "Ticket Rejected"
+
+#: src/Config/EditorTab.php
+msgid "Status Changed"
+msgstr "Status Changed"
 
 #: src/Config/EditorTab.php
 msgid "Members Changed"
@@ -808,8 +816,8 @@ msgid "Ticket #"
 msgstr "Ticket #"
 
 #: src/Config/EditorTab.php
-msgid "Add Solution"
-msgstr "Add Solution"
+msgid "Solution Proposed"
+msgstr "Solution Proposed"
 
 #: src/Config/EditorTab.php
 msgid "Solution Approved"
