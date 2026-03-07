@@ -20,6 +20,7 @@ use GlpiPlugin\Mattermostjetlag\Config\RulesListTab;
 use GlpiPlugin\Mattermostjetlag\Config\EditorTab;
 use GlpiPlugin\Mattermostjetlag\Config\DebugModeTab;
 use GlpiPlugin\Mattermostjetlag\Config\EventJournalTab;
+use GlpiPlugin\Mattermostjetlag\Config\VariablesOverrideTab;
 use Session;
 
 if (!defined('GLPI_ROOT')) {
@@ -120,6 +121,9 @@ class Config extends CommonDBTM
                 break;
             case 4:
                 EventJournalTab::render($item);
+                break;
+            case 5:
+                VariablesOverrideTab::render($item);
                 break;
             case 6:
                 \Glpi\Application\View\TemplateRenderer::getInstance()

@@ -802,6 +802,37 @@ if (isset($_POST['update_debug_config'])) {
     Html::redirect($redirect_debug);
 }
 
+if (isset($_POST['update_variables_override'])) {
+    $validTypes  = ['ticket', 'change', 'problem'];
+    $validGroups = ['status', 'urgency', 'priority', 'type'];
+    $overrides   = [];
+    foreach ($validTypes as $t) {
+        $typeData = $_POST[$t] ?? [];
+        if (!is_array($typeData)) {
+            continue;
+        }
+        foreach ($validGroups as $g) {
+            $vals = $typeData[$g] ?? [];
+            if (!is_array($vals)) {
+                continue;
+            }
+            foreach ($vals as $code => $val) {
+                $val = trim((string) $val);
+                if ($val !== '') {
+                    $overrides[$t][$g][(string)(int) $code] = $val;
+                }
+            }
+        }
+    }
+    $config->update([
+        'id'                 => 1,
+        'variables_override' => json_encode($overrides, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+    Session::addMessageAfterRedirect(__('Saved', 'mattermostjetlag'));
+    $tab_override = Config::getType() . '$5';
+    Html::redirect($base_url . '&_glpi_tab=' . urlencode($tab_override));
+}
+
 if (isset($_POST['add_notification_rule']) && trim($_POST['rule_name'] ?? '') !== '') {
     $rule = new NotificationRule();
     $new_id = $rule->add([
