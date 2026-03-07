@@ -183,6 +183,12 @@
     border-bottom: 1px solid var(--tblr-border-color, #dee2e6);
     font-size: 0.8125rem;
     color: var(--tblr-body-color, #212529);
+    border-radius: 4px;
+    transition: background 0.12s ease;
+    cursor: default;
+}
+.mjl-ej-send-row:hover {
+    background: var(--tblr-active-bg, rgba(0, 0, 0, 0.04));
 }
 .mjl-ej-send-row:last-child {
     border-bottom: none;
