@@ -37,6 +37,17 @@
             <button type="button" id="mjl-log-clear-btn" class="btn btn-sm btn-outline-danger">
                 <i class="ti ti-trash me-1"></i>{{ __('Clear log', 'mattermostjetlag') }}
             </button>
+            <div class="vr"></div>
+            <button type="button" id="mjl-self-test-btn" class="btn btn-sm btn-outline-info"
+                    data-bs-toggle="modal" data-bs-target="#mjl-self-test-modal">
+                <i class="ti ti-stethoscope me-1"></i>{{ __('Self-Test', 'mattermostjetlag') }}
+            </button>
+            <div id="mjl-self-test-progress" class="d-none align-items-center gap-2">
+                <div class="mjl-st-bar-wrap">
+                    <div id="mjl-st-bar" class="mjl-st-bar" style="width:0%"></div>
+                </div>
+                <span id="mjl-st-label" class="mjl-st-label"></span>
+            </div>
             {% endif %}
             <span id="mjl-live-dot" class="mjl-live-dot" title="{{ __('Live updates every 5s', 'mattermostjetlag') }}"></span>
             <form class="d-flex align-items-center gap-2 ms-auto" id="mjl-log-search-form">
@@ -63,6 +74,40 @@
          data-i18n-no-logs="{{ __('No events recorded yet.', 'mattermostjetlag')|e }}"
          data-i18n-cleared="{{ __('Log cleared.', 'mattermostjetlag')|e }}">
         {# Rendered by JS #}
+    </div>
+</div>
+
+{# ═══════ Self-Test modal ═══════ #}
+<div class="modal fade" id="mjl-self-test-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-stethoscope me-2"></i>{{ __('Plugin Self-Test', 'mattermostjetlag') }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning mb-3">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    {{ __('A test ticket will be created and automatically deleted. The process takes ~30 seconds and will generate events in the log.', 'mattermostjetlag') }}
+                </div>
+                {% if not simulate_send %}
+                <div class="alert alert-info mb-0">
+                    <i class="ti ti-bell me-2"></i>
+                    {{ __('Tip: enable Notify Simulation to prevent real messages from being sent during the test.', 'mattermostjetlag') }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {{ __('Cancel', 'mattermostjetlag') }}
+                </button>
+                <button type="button" class="btn btn-info" id="mjl-self-test-confirm">
+                    <i class="ti ti-player-play me-1"></i>{{ __('Run Diagnostics', 'mattermostjetlag') }}
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 

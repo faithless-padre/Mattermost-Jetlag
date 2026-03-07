@@ -58,6 +58,7 @@ class DebugModeTab
                     'id'            => (int) $row['id'],
                     'target'        => (string) ($row['target'] ?? 'Ticket'),
                     'event'         => $eventLabels[$eventKey] ?? $eventKey,
+                    'event_key'     => $eventKey,
                     'ticket_id'     => $row['ticket_id'] ? (int) $row['ticket_id'] : null,
                     'subject'       => (string) ($payloadArr['subject'] ?? ''),
                     'payload'       => (string) ($row['payload'] ?? '{}'),

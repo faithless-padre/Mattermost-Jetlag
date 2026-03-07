@@ -694,7 +694,14 @@ function plugin_mattermostjetlag_item_update_Ticket(CommonDBTM $item): void
     if (plugin_mattermostjetlag_ticket_is_too_fresh($item)) {
         return;
     }
-    if (in_array('status', $item->updates ?? [])) {
+    $updates = $item->updates ?? [];
+    // Skip updates that only touch validation side-effect fields (GLPI sets these when
+    // a TicketValidation is added/accepted/refused, which is already logged separately).
+    $validationSideEffects = ['global_validation', 'validation_percent'];
+    if (!empty($updates) && empty(array_diff($updates, $validationSideEffects))) {
+        return;
+    }
+    if (in_array('status', $updates)) {
         $actions = ['status_changed'];
     } else {
         $actions = ['update'];
@@ -723,53 +730,13 @@ function plugin_mattermostjetlag_item_update_Ticket(CommonDBTM $item): void
 }
 
 /**
- * Detects whether a followup was created as part of a solution review by the requester.
- *
- * Returns 'solution_approved' when the ticket was just closed (status=6, date_mod ≤30 s ago)
- * and has at least one ITILSolution record.
- *
- * Returns 'solution_rejected' when the ticket was just updated (date_mod ≤30 s ago) and its
- * most recent ITILSolution has status=4 (REFUSED).
- *
- * Returns null for ordinary followups.
+ * Detects whether a followup was created as part of a solution review.
+ * Solution approval/rejection are now handled directly by item_update_ITILSolution,
+ * so this always returns null to avoid double events when the UI creates a followup
+ * alongside the solution status update.
  */
 function plugin_mattermostjetlag_detect_solution_followup_event(Ticket $ticket): ?string
 {
-    global $DB;
-
-    $dateMod = strtotime($ticket->fields['date_mod'] ?? '');
-    if ($dateMod === false || (time() - $dateMod) > 30) {
-        return null;
-    }
-
-    $ticketStatus = (int) ($ticket->fields['status'] ?? 0);
-
-    // Approved: ticket is now Closed
-    if ($ticketStatus === 6) {
-        $rows = $DB->request([
-            'FROM'  => \ITILSolution::getTable(),
-            'WHERE' => ['itemtype' => 'Ticket', 'items_id' => $ticket->getID()],
-            'LIMIT' => 1,
-        ]);
-        if (count($rows) > 0) {
-            return 'solution_approved';
-        }
-        return null;
-    }
-
-    // Rejected: most recent solution has status=4 (REFUSED)
-    $rows = $DB->request([
-        'FROM'  => \ITILSolution::getTable(),
-        'WHERE' => ['itemtype' => 'Ticket', 'items_id' => $ticket->getID()],
-        'ORDER' => ['id DESC'],
-        'LIMIT' => 1,
-    ]);
-    foreach ($rows as $row) {
-        if ((int) ($row['status'] ?? 0) === 4) {
-            return 'solution_rejected';
-        }
-    }
-
     return null;
 }
 
@@ -901,9 +868,9 @@ function plugin_mattermostjetlag_item_add_ITILSolution(CommonDBTM $item): void
 
 function plugin_mattermostjetlag_item_update_ITILSolution(CommonDBTM $item): void
 {
-    // ITILSolution: ACCEPTED = 3 — requester confirmed the solution
+    // ITILSolution: ACCEPTED = 3, REFUSED = 4
     $newStatus = (int) ($item->input['status'] ?? 0);
-    if ($newStatus !== 3) {
+    if ($newStatus !== 3 && $newStatus !== 4) {
         return;
     }
     if ($item->fields['itemtype'] !== 'Ticket') {
@@ -920,7 +887,7 @@ function plugin_mattermostjetlag_item_update_ITILSolution(CommonDBTM $item): voi
     if (plugin_mattermostjetlag_ticket_is_too_fresh($ticket)) {
         return;
     }
-    $action = 'solution_approved';
+    $action = $newStatus === 3 ? 'solution_approved' : 'solution_rejected';
     $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
     $data = plugin_mattermostjetlag_build_ticket_log_data($ticket, $action);
     if (empty($data)) {

@@ -569,6 +569,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'get_event
                     'id'            => (int) $row['id'],
                     'target'        => (string) ($row['target'] ?? 'Ticket'),
                     'event'         => $eventLabels[$eventKey] ?? $eventKey,
+                    'event_key'     => $eventKey,
                     'ticket_id'     => $row['ticket_id'] ? (int) $row['ticket_id'] : null,
                     'subject'       => (string) ($payloadArr['subject'] ?? ''),
                     'payload'       => (string) ($row['payload'] ?? '{}'),
@@ -582,6 +583,167 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'get_event
             'items'      => $items,
             'csrf_token' => Session::getNewCSRFToken(),
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Self-test — create ticket ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test_start') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        global $DB;
+        $userId = Session::getLoginUserID();
+
+        // Find 'tech' user by login; fall back to current user
+        $techId = $userId;
+        $techRows = $DB->request(['FROM' => User::getTable(), 'WHERE' => ['name' => 'tech'], 'LIMIT' => 1]);
+        foreach ($techRows as $row) { $techId = (int) $row['id']; }
+
+        $ticket   = new Ticket();
+        $ticketId = $ticket->add([
+            'name'                => '[MJL-TEST] Plugin Connectivity Check',
+            'content'             => "This ticket was automatically created by the Mattermost Jetlag plugin as part of a self-diagnostic routine.\n\nIt will be automatically deleted at the end of the test.\nDo not modify or close this ticket manually.\n\nTest started: " . date('Y-m-d H:i:s'),
+            'urgency'             => 1,
+            'type'                => Ticket::INCIDENT_TYPE,
+            'requesttypes_id'     => 1,
+            '_users_id_requester' => $userId,
+        ]);
+        if (!$ticketId) {
+            throw new \RuntimeException('Failed to create ticket');
+        }
+        echo json_encode([
+            'ok'         => true,
+            'ticket_id'  => (int) $ticketId,
+            'tech_id'    => (int) $techId,
+            'csrf_token' => Session::getNewCSRFToken(),
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── AJAX: Self-test — execute step ──
+if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test_step') {
+    Session::checkLoginUser();
+    Session::checkRight('config', UPDATE);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $step     = (string) ($_POST['step']      ?? '');
+        $ticketId = (int)    ($_POST['ticket_id'] ?? 0);
+        $valId    = (int)    ($_POST['val_id']    ?? 0);
+        $solId    = (int)    ($_POST['sol_id']    ?? 0);
+        $techId   = (int)    ($_POST['tech_id']   ?? 0);
+        $userId   = Session::getLoginUserID();
+        $result   = ['ok' => true, 'csrf_token' => Session::getNewCSRFToken()];
+
+        switch ($step) {
+            case 'add_observer':
+                $tu = new Ticket_User();
+                $tu->add([
+                    'tickets_id' => $ticketId,
+                    'users_id'   => $techId > 0 ? $techId : $userId,
+                    'type'       => CommonITILActor::OBSERVER,
+                ]);
+                break;
+
+            case 'add_followup':
+                $fu = new ITILFollowup();
+                $fu->add([
+                    'items_id'   => $ticketId,
+                    'itemtype'   => 'Ticket',
+                    'content'    => '[MJL-TEST] Automated followup — diagnostic step',
+                    'is_private' => 0,
+                ]);
+                break;
+
+            case 'request_approval':
+                $val   = new TicketValidation();
+                $newId = $val->add([
+                    'tickets_id'         => $ticketId,
+                    'itemtype_target'    => 'User',
+                    'items_id_target'    => $userId,
+                    'comment_submission' => '[MJL-TEST] Automated approval request',
+                ]);
+                $result['val_id'] = (int) $newId;
+                break;
+
+            case 'reject_approval':
+                if ($valId > 0) {
+                    $val = new TicketValidation();
+                    $val->update([
+                        'id'                 => $valId,
+                        'status'             => 4, // CommonITILValidation::REFUSED
+                        'comment_validation' => '[MJL-TEST] Automated rejection',
+                    ]);
+                }
+                break;
+
+            case 'approve':
+                if ($valId > 0) {
+                    $val = new TicketValidation();
+                    $val->update([
+                        'id'                 => $valId,
+                        'status'             => 3, // CommonITILValidation::ACCEPTED
+                        'comment_validation' => '[MJL-TEST] Automated approval',
+                    ]);
+                }
+                break;
+
+            case 'change_status':
+                $ticket = new Ticket();
+                $ticket->update([
+                    'id'     => $ticketId,
+                    'status' => 3, // Processing
+                ]);
+                break;
+
+            case 'add_solution':
+                $sol   = new ITILSolution();
+                $newId = $sol->add([
+                    'itemtype' => 'Ticket',
+                    'items_id' => $ticketId,
+                    'content'  => '[MJL-TEST] Automated solution proposal',
+                ]);
+                $result['sol_id'] = (int) $newId;
+                break;
+
+            case 'reject_solution':
+                if ($solId > 0) {
+                    $sol = new ITILSolution();
+                    $sol->update([
+                        'id'     => $solId,
+                        'status' => 4, // ITILSolution::REFUSED
+                    ]);
+                }
+                break;
+
+            case 'approve_solution':
+                if ($solId > 0) {
+                    $sol = new ITILSolution();
+                    $sol->update([
+                        'id'     => $solId,
+                        'status' => 3, // ITILSolution::ACCEPTED
+                    ]);
+                }
+                break;
+
+            case 'delete_ticket':
+                $ticket = new Ticket();
+                $ticket->delete(['id' => $ticketId]);
+                break;
+
+            default:
+                throw new \RuntimeException('Unknown step: ' . $step);
+        }
+
+        echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     } catch (\Throwable $e) {
         http_response_code(500);
         echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
