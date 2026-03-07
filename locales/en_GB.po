@@ -822,3 +822,27 @@ msgstr "Solution Proposed"
 #: src/Config/EditorTab.php
 msgid "Solution Approved"
 msgstr "Solution Approved"
+
+#: templates/config/variables_override.html.twig
+msgid "Override the labels used in notification macros ({status}, {urgency}, {priority}, {type}). Leave a field empty to use the built-in English default."
+msgstr "Override the labels used in notification macros ({status}, {urgency}, {priority}, {type}). Leave a field empty to use the built-in English default."
+
+#: templates/config/variables_override.html.twig
+msgid "Code"
+msgstr "Code"
+
+#: templates/config/variables_override.html.twig
+msgid "Default (EN)"
+msgstr "Default (EN)"
+
+#: templates/config/variables_override.html.twig
+msgid "Override"
+msgstr "Override"
+
+#: templates/config/variables_override.html.twig
+msgid "Clear all overrides"
+msgstr "Clear all overrides"
+
+#: templates/config/variables_override.html.twig
+msgid "(default)"
+msgstr "(default)"

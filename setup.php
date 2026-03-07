@@ -126,4 +126,7 @@ function plugin_mattermostjetlag_init()
     if ($DB->tableExists($table) && !$DB->fieldExists($table, 'simulate_send')) {
         $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `simulate_send` tinyint(1) NOT NULL DEFAULT 0 AFTER `extended_log`");
     }
+    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'variables_override')) {
+        $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `variables_override` TEXT DEFAULT NULL AFTER `simulate_send`");
+    }
 }

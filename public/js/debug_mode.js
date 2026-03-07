@@ -8,6 +8,7 @@ window.mjlDebugModeInit = function () {
     if (!root) return;
 
     var POLL_INTERVAL = 5000; // ms
+    var PAGE_SIZE     = 20;
 
     var fullLogs = [];
     var allLogs  = [];
@@ -26,13 +27,15 @@ window.mjlDebugModeInit = function () {
     allLogs = fullLogs.slice();
     lastId  = fullLogs.length > 0 ? fullLogs[0].id : 0;
 
-    var clearBtn    = document.getElementById('mjl-log-clear-btn');
-    var toggleBtn   = document.getElementById('mjl-log-toggle-btn');
-    var simulateBtn = document.getElementById('mjl-simulate-toggle-btn');
-    var searchInput = document.getElementById('mjl-log-search');
-    var searchBtn   = document.getElementById('mjl-log-search-btn');
-    var searchClear = document.getElementById('mjl-log-search-clear');
-    var searchForm  = document.getElementById('mjl-log-search-form');
+    var clearBtn      = document.getElementById('mjl-log-clear-btn');
+    var toggleBtn     = document.getElementById('mjl-log-toggle-btn');
+    var simulateBtn   = document.getElementById('mjl-simulate-toggle-btn');
+    var searchInput   = document.getElementById('mjl-log-search');
+    var searchBtn     = document.getElementById('mjl-log-search-btn');
+    var searchClear   = document.getElementById('mjl-log-search-clear');
+    var searchForm    = document.getElementById('mjl-log-search-form');
+    var showMoreWrap  = document.getElementById('mjl-log-show-more-wrap');
+    var showMoreBtn   = document.getElementById('mjl-log-show-more');
 
     /* ── Live indicator ── */
     var liveDot = document.getElementById('mjl-live-dot');
@@ -98,7 +101,14 @@ window.mjlDebugModeInit = function () {
         });
     }
 
-    /* ── Render full list ── */
+    /* ── Show more button ── */
+    function updateShowMore(totalCount) {
+        if (!showMoreWrap) return;
+        var shown = root.querySelectorAll('.mjl-tr-row').length;
+        showMoreWrap.style.display = shown < totalCount ? '' : 'none';
+    }
+
+    /* ── Render full list (first PAGE_SIZE items) ── */
     function renderLogs(logs) {
         root.querySelectorAll('.mjl-tr-row, .mjl-tr-detail, .mjl-tr-empty').forEach(function (el) {
             el.remove();
@@ -108,12 +118,14 @@ window.mjlDebugModeInit = function () {
             emptyEl.className = 'mjl-tr-empty';
             emptyEl.textContent = i18n.noLogs;
             root.appendChild(emptyEl);
+            updateShowMore(0);
             return;
         }
         var html = '';
-        logs.forEach(function (log) { html += buildRowHtml(log, false); });
+        logs.slice(0, PAGE_SIZE).forEach(function (log) { html += buildRowHtml(log, false); });
         root.insertAdjacentHTML('beforeend', html);
         bindNewRows();
+        updateShowMore(logs.length);
     }
 
     /* ── Prepend new rows (live) ── */
@@ -131,6 +143,21 @@ window.mjlDebugModeInit = function () {
             root.insertAdjacentHTML('beforeend', html);
         }
         bindNewRows();
+        updateShowMore(allLogs.length);
+    }
+
+    /* ── Show more click ── */
+    if (showMoreBtn) {
+        showMoreBtn.addEventListener('click', function () {
+            var shown = root.querySelectorAll('.mjl-tr-row').length;
+            var nextBatch = allLogs.slice(shown, shown + PAGE_SIZE);
+            if (nextBatch.length === 0) { updateShowMore(allLogs.length); return; }
+            var html = '';
+            nextBatch.forEach(function (log) { html += buildRowHtml(log, false); });
+            root.insertAdjacentHTML('beforeend', html);
+            bindNewRows();
+            updateShowMore(allLogs.length);
+        });
     }
 
     /* ── Search ── */
@@ -198,6 +225,8 @@ window.mjlDebugModeInit = function () {
     }
 
     /* ── Toggle notify simulation ── */
+    var simulateBanner = document.getElementById('mjl-simulate-banner');
+
     if (simulateBtn) {
         simulateBtn.addEventListener('click', function () {
             var fd = new FormData();
@@ -208,8 +237,12 @@ window.mjlDebugModeInit = function () {
                 .then(function (data) {
                     if (data.csrf_token) { csrfToken = data.csrf_token; }
                     if (!data.ok) { return; }
-                    updateToggleBtn(simulateBtn, data.simulate_send === 1,
+                    var active = data.simulate_send === 1;
+                    updateToggleBtn(simulateBtn, active,
                         'btn-outline-warning', 'btn-outline-secondary', 'ti-bell', 'ti-bell-off');
+                    if (simulateBanner) {
+                        simulateBanner.classList.toggle('d-none', !active);
+                    }
                 })
                 .catch(function () {});
         });

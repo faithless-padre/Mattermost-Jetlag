@@ -842,3 +842,27 @@ msgstr "Включить симуляцию отправки"
 #: templates/config/debug_mode.html.twig
 msgid "Disable Notify Simulation"
 msgstr "Отключить симуляцию отправки"
+
+#: templates/config/variables_override.html.twig
+msgid "Override the labels used in notification macros ({status}, {urgency}, {priority}, {type}). Leave a field empty to use the built-in English default."
+msgstr "Переопределите метки, используемые в макросах уведомлений ({status}, {urgency}, {priority}, {type}). Оставьте поле пустым, чтобы использовать встроенное значение на английском."
+
+#: templates/config/variables_override.html.twig
+msgid "Code"
+msgstr "Код"
+
+#: templates/config/variables_override.html.twig
+msgid "Default (EN)"
+msgstr "По умолчанию (EN)"
+
+#: templates/config/variables_override.html.twig
+msgid "Override"
+msgstr "Переопределение"
+
+#: templates/config/variables_override.html.twig
+msgid "Clear all overrides"
+msgstr "Сбросить все переопределения"
+
+#: templates/config/variables_override.html.twig
+msgid "(default)"
+msgstr "(по умолчанию)"

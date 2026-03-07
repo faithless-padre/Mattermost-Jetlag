@@ -12,6 +12,8 @@
  */
 
 use CommonDBTM;
+use GlpiPlugin\Mattermostjetlag\Config;
+use GlpiPlugin\Mattermostjetlag\Config\VariablesOverrideTab;
 use GlpiPlugin\Mattermostjetlag\NotificationRule;
 use GlpiPlugin\Mattermostjetlag\SendLog;
 use Ticket;
@@ -22,6 +24,30 @@ if (!defined('GLPI_ROOT')) {
 }
 
 require_once __DIR__ . '/ticket_logger.php';
+
+/**
+ * Load variables_override from config (cached for the duration of the request).
+ */
+function plugin_mattermostjetlag_get_variables_override(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cfg = new Config();
+    if (!$cfg->getFromDB(1)) {
+        $cache = [];
+        return $cache;
+    }
+    $raw = $cfg->fields['variables_override'] ?? null;
+    if (!$raw) {
+        $cache = [];
+        return $cache;
+    }
+    $decoded = json_decode((string) $raw, true);
+    $cache = is_array($decoded) ? $decoded : [];
+    return $cache;
+}
 
 /**
  * action → event (DB value stored in rule.event). All map 1:1.
@@ -177,23 +203,36 @@ function plugin_mattermostjetlag_build_ticket_log_data(CommonDBTM $ticket, strin
     $ticketId   = $ticket->getID();
     $ticketName = $ticket->fields['name'] ?? '';
 
+    $vo  = plugin_mattermostjetlag_get_variables_override();
+    $vot = $vo['ticket'] ?? []; // ticket-specific overrides
+
     $statusMap = [
         1 => 'New',
         2 => 'Assigned',
-        3 => 'Processing',
+        3 => 'Processing (planned)',
         4 => 'Pending',
         5 => 'Solved',
         6 => 'Closed',
     ];
-    $ticketStatus = $statusMap[(int) ($ticket->fields['status'] ?? 0)] ?? null;
+    $statusCode   = (int) ($ticket->fields['status'] ?? 0);
+    $ticketStatus = $vot['status'][(string) $statusCode]
+        ?? $statusMap[$statusCode]
+        ?? null;
 
-    $typeMap = [1 => 'Incident', 2 => 'Request'];
-    $ticketType = $typeMap[(int) ($ticket->fields['type'] ?? 0)] ?? null;
+    $typeMap  = [1 => 'Incident', 2 => 'Request'];
+    $typeCode = (int) ($ticket->fields['type'] ?? 0);
+    $ticketType = $vot['type'][(string) $typeCode]
+        ?? $typeMap[$typeCode]
+        ?? null;
 
     $urgencyCode  = (int) ($ticket->fields['urgency'] ?? 0);
     $priorityCode = (int) ($ticket->fields['priority'] ?? 0);
-    $ticketUrgency  = $urgencyCode > 0 ? \CommonITILObject::getUrgencyName($urgencyCode) : null;
-    $ticketPriority = $priorityCode > 0 ? \CommonITILObject::getPriorityName($priorityCode) : null;
+    $ticketUrgency  = $urgencyCode > 0
+        ? ($vot['urgency'][(string) $urgencyCode] ?? \CommonITILObject::getUrgencyName($urgencyCode))
+        : null;
+    $ticketPriority = $priorityCode > 0
+        ? ($vot['priority'][(string) $priorityCode] ?? \CommonITILObject::getPriorityName($priorityCode))
+        : null;
 
     $ticketCategory = null;
     if (!empty($ticket->fields['itilcategories_id'])) {

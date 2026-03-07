@@ -1,0 +1,114 @@
+{# Variables Override tab — 3 independent sections: Tickets, Changes, Problems #}
+<div class="mjl-tab-content">
+
+{# ═══════ Description ═══════ #}
+<div class="alert alert-info d-flex align-items-start mb-3">
+    <span class="ti ti-info-circle me-2 mt-1 fs-5 flex-shrink-0"></span>
+    <div>
+        {{ __('Override the labels used in notification macros ({status}, {urgency}, {priority}, {type}). Leave a field empty to use the built-in English default.', 'mattermostjetlag') }}
+    </div>
+</div>
+
+{% if can_update %}
+<form method="post" action="{{ form_action }}">
+    <input type="hidden" name="id" value="{{ config_id }}">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+{% endif %}
+
+{# ═══════ One block per object type ═══════ #}
+{% for obj in object_types %}
+
+{# — Section header — #}
+<div class="card border-0 shadow-none p-0 m-0 {{ loop.first ? 'mt-n2' : 'mt-3' }}">
+    <div class="card-header py-2 border-top rounded-0"
+         style="background-color: var(--glpi-form-header-bg); color: var(--glpi-form-header-fg); border-color: var(--glpi-form-header-border-color);">
+        <h5 class="card-title ms-5 mb-0">
+            <div class="ribbon ribbon-bookmark ribbon-top ribbon-start {{ obj.color }} s-1" style="--tblr-ribbon-size: 1.25rem;">
+                <i class="ti {{ obj.icon }} fs-4"></i>
+            </div>
+            {{ obj.label }} {{ __('Variables Override', 'mattermostjetlag') }}
+        </h5>
+    </div>
+</div>
+
+{# — Group cards — #}
+<div class="row g-2 mb-1">
+{% for group in obj.groups %}
+<div class="col-12">
+<div class="card border">
+    <div class="d-flex align-items-stretch">
+        <div class="d-flex align-items-start justify-content-center px-3 pt-2 border-end flex-shrink-0"
+             style="width: 110px;">
+            <code class="fw-bold text-nowrap">{{'{'}}{{ group.key }}{{'}'}}</code>
+        </div>
+        <div class="flex-grow-1 p-0">
+            <table class="table table-sm table-hover mb-0 mjl-vo-table" style="table-layout: fixed;">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center text-muted" style="width:60px;">{{ __('Code', 'mattermostjetlag') }}</th>
+                        <th class="text-muted" style="width:160px;">{{ __('Default (EN)', 'mattermostjetlag') }}</th>
+                        <th style="width: 240px;">{{ __('Override', 'mattermostjetlag') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in group.rows %}
+                    <tr>
+                        <td class="text-center align-middle">
+                            <span class="badge bg-secondary-lt text-secondary fw-bold">{{ row.code }}</span>
+                        </td>
+                        <td class="align-middle text-muted">
+                            <code class="small">{{ row.default }}</code>
+                        </td>
+                        <td class="align-middle">
+                            {% if can_update %}
+                            <input type="text"
+                                   name="{{ obj.key }}[{{ group.key }}][{{ row.code }}]"
+                                   value="{{ row.override }}"
+                                   class="form-control form-control-sm mjl-vo-input"
+                                   placeholder="{{ row.default }}">
+                            {% else %}
+                            <span class="{{ row.override ? '' : 'text-muted fst-italic' }}">
+                                {{ row.override ?: __('(default)', 'mattermostjetlag') }}
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+{% endfor %}
+</div>
+
+{% endfor %}{# end object_types loop #}
+
+{% if can_update %}
+{# ═══════ Save / Clear buttons ═══════ #}
+<div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+    <button type="button" class="btn btn-outline-secondary mjl-vo-reset-btn">
+        <i class="ti ti-eraser me-1"></i>{{ __('Clear all overrides', 'mattermostjetlag') }}
+    </button>
+    <button type="submit" name="update_variables_override" value="1" class="btn btn-primary">
+        <i class="ti ti-device-floppy me-1"></i>{{ __('Save', 'mattermostjetlag') }}
+    </button>
+</div>
+</form>
+{% endif %}
+
+<script>
+(function () {
+    var resetBtn = document.querySelector('.mjl-vo-reset-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+            document.querySelectorAll('.mjl-vo-input').forEach(function (inp) {
+                inp.value = '';
+            });
+        });
+    }
+})();
+</script>
+
+</div>

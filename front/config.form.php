@@ -721,6 +721,10 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test
                         'id'     => $solId,
                         'status' => 4, // ITILSolution::REFUSED
                     ]);
+                    // Direct ITILSolution update does not reset the ticket status.
+                    // Move ticket back to Assigned so a new solution can be proposed.
+                    $t = new Ticket();
+                    $t->update(['id' => $ticketId, 'status' => 2]); // CommonITILObject::ASSIGNED
                 }
                 break;
 
@@ -736,6 +740,9 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test
 
             case 'delete_ticket':
                 $ticket = new Ticket();
+                if (!$ticket->getFromDB($ticketId)) {
+                    throw new \RuntimeException('Ticket #' . $ticketId . ' not found');
+                }
                 $ticket->delete(['id' => $ticketId]);
                 break;
 
@@ -795,6 +802,37 @@ if (isset($_POST['update_debug_config'])) {
     Html::redirect($redirect_debug);
 }
 
+if (isset($_POST['update_variables_override'])) {
+    $validTypes  = ['ticket', 'change', 'problem'];
+    $validGroups = ['status', 'urgency', 'priority', 'type'];
+    $overrides   = [];
+    foreach ($validTypes as $t) {
+        $typeData = $_POST[$t] ?? [];
+        if (!is_array($typeData)) {
+            continue;
+        }
+        foreach ($validGroups as $g) {
+            $vals = $typeData[$g] ?? [];
+            if (!is_array($vals)) {
+                continue;
+            }
+            foreach ($vals as $code => $val) {
+                $val = trim((string) $val);
+                if ($val !== '') {
+                    $overrides[$t][$g][(string)(int) $code] = $val;
+                }
+            }
+        }
+    }
+    $config->update([
+        'id'                 => 1,
+        'variables_override' => json_encode($overrides, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+    Session::addMessageAfterRedirect(__('Saved', 'mattermostjetlag'));
+    $tab_override = Config::getType() . '$5';
+    Html::redirect($base_url . '&_glpi_tab=' . urlencode($tab_override));
+}
+
 if (isset($_POST['add_notification_rule']) && trim($_POST['rule_name'] ?? '') !== '') {
     $rule = new NotificationRule();
     $new_id = $rule->add([
@@ -844,5 +882,14 @@ if (empty($_GET['_glpi_tab'])) {
 }
 Session::setActiveTab(Config::getType(), $_GET['_glpi_tab']);
 Html::header(__('Mattermost Jetlag', 'mattermostjetlag'), $_SERVER['PHP_SELF'], 'config', 'plugin', 'mattermostjetlag');
+
+$simulateSendActive = (int) ($config->fields['simulate_send'] ?? 0) === 1;
+$bannerHidden = $simulateSendActive ? '' : ' d-none';
+echo '<div id="mjl-simulate-banner" class="alert alert-warning d-flex align-items-center mx-3 mt-3' . $bannerHidden . '" role="alert">';
+echo '<span class="ti ti-alert-triangle me-2 fs-4"></span>';
+echo '<div><strong>' . __('Notify Simulation is active', 'mattermostjetlag') . '</strong> — ';
+echo __('Messages will not be sent to Mattermost. Disable simulation in the Debug Mode tab to resume real notifications.', 'mattermostjetlag');
+echo '</div></div>';
+
 $config->display($_GET);
 Html::footer();

@@ -70,8 +70,10 @@
     font-size: 0.8rem;
     line-height: 1.6;
     overflow-x: auto;
-    max-height: 520px;
-    overflow-y: auto;
+}
+.mjl-log-show-more-wrap {
+    text-align: center;
+    padding: 0.5rem 0;
 }
 .mjl-tr-row {
     display: flex;
