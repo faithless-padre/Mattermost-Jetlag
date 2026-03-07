@@ -225,6 +225,8 @@ window.mjlDebugModeInit = function () {
     }
 
     /* ── Toggle notify simulation ── */
+    var simulateBanner = document.getElementById('mjl-simulate-banner');
+
     if (simulateBtn) {
         simulateBtn.addEventListener('click', function () {
             var fd = new FormData();
@@ -235,8 +237,12 @@ window.mjlDebugModeInit = function () {
                 .then(function (data) {
                     if (data.csrf_token) { csrfToken = data.csrf_token; }
                     if (!data.ok) { return; }
-                    updateToggleBtn(simulateBtn, data.simulate_send === 1,
+                    var active = data.simulate_send === 1;
+                    updateToggleBtn(simulateBtn, active,
                         'btn-outline-warning', 'btn-outline-secondary', 'ti-bell', 'ti-bell-off');
+                    if (simulateBanner) {
+                        simulateBanner.classList.toggle('d-none', !active);
+                    }
                 })
                 .catch(function () {});
         });

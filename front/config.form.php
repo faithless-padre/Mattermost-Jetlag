@@ -851,5 +851,14 @@ if (empty($_GET['_glpi_tab'])) {
 }
 Session::setActiveTab(Config::getType(), $_GET['_glpi_tab']);
 Html::header(__('Mattermost Jetlag', 'mattermostjetlag'), $_SERVER['PHP_SELF'], 'config', 'plugin', 'mattermostjetlag');
+
+$simulateSendActive = (int) ($config->fields['simulate_send'] ?? 0) === 1;
+$bannerHidden = $simulateSendActive ? '' : ' d-none';
+echo '<div id="mjl-simulate-banner" class="alert alert-warning d-flex align-items-center mx-3 mt-3' . $bannerHidden . '" role="alert">';
+echo '<span class="ti ti-alert-triangle me-2 fs-4"></span>';
+echo '<div><strong>' . __('Notify Simulation is active', 'mattermostjetlag') . '</strong> — ';
+echo __('Messages will not be sent to Mattermost. Disable simulation in the Debug Mode tab to resume real notifications.', 'mattermostjetlag');
+echo '</div></div>';
+
 $config->display($_GET);
 Html::footer();
