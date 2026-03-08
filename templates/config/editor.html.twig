@@ -80,7 +80,7 @@
                             {% endfor %}
                         </select>
                         <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-                              data-bs-title="{{ __('The entity type to monitor. Currently only Ticket is supported.', 'mattermostjetlag')|e }}">?</span>
+                              data-bs-title="{{ __('The entity type to monitor. Ticket or Change.', 'mattermostjetlag')|e }}">?</span>
                     </div>
                 </div>
 
@@ -327,7 +327,8 @@
      data-macros-by-target="{{ macros_by_target|json_encode|e('html_attr') }}"
      data-macros-extra-by-event="{{ macros_extra_by_event|json_encode|e('html_attr') }}"
      data-recipient-options-by-target="{{ recipient_options_by_target|json_encode|e('html_attr') }}"
-     data-recipient-options-extra-by-event="{{ recipient_options_extra_by_event|json_encode|e('html_attr') }}">
+     data-recipient-options-extra-by-event="{{ recipient_options_extra_by_event|json_encode|e('html_attr') }}"
+     data-events-by-target="{{ events_by_target|json_encode|e('html_attr') }}">
 </div>
 <script>
 if (typeof window.mjlEditorInit === 'function') {

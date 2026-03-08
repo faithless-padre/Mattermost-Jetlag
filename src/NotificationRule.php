@@ -76,11 +76,13 @@ class NotificationRule extends CommonDBTM implements FilterableInterface
     }
 
     /**
-     * Itemtype to use for the filter builder (Ticket search options).
+     * Itemtype to use for the filter builder — determined by the rule's target field.
+     * Defaults to 'Ticket' for backward compatibility.
      */
     public function getItemtypeToFilter(): string
     {
-        return 'Ticket';
+        $target = (string) ($this->fields['target'] ?? 'Ticket');
+        return in_array($target, ['Ticket', 'Change'], true) ? $target : 'Ticket';
     }
 
     public function getItemtypeField(): ?string

@@ -96,7 +96,13 @@
                     </a>
                 </span>
                 <span class="rule-name">{{ rule.name|e }}</span>
-                <span class="rule-target"><span class="badge bg-blue-lt text-blue">{{ rule.target|e }}</span></span>
+                <span class="rule-target">
+                    {% if rule.target == 'Change' %}
+                        <span class="badge bg-orange-lt text-orange">{{ rule.target|e }}</span>
+                    {% else %}
+                        <span class="badge bg-blue-lt text-blue">{{ rule.target|e }}</span>
+                    {% endif %}
+                </span>
                 <span class="rule-event"><span class="badge bg-azure-lt text-azure">{{ (event_labels[rule.event] ?? rule.event)|e }}</span></span>
                 <span class="rule-recipient" title="{{ rule.recipient|e }}">{{ rule.recipient|e }}</span>
                 <span class="rule-raw" title="{{ rule.use_raw ? __('Raw payload enabled', 'mattermostjetlag') : __('Raw payload disabled', 'mattermostjetlag') }}">

@@ -18,9 +18,11 @@ class EditorTab
 
     public const RULE_TARGETS = [
         'Ticket' => 'Ticket',
+        'Change' => 'Change',
     ];
 
     public const RULE_EVENTS = [
+        // Ticket events
         'create'         => 'Ticket Created',
         'followup'       => 'Ticket Commented',
         'approval'       => 'Approval Requested',
@@ -33,6 +35,32 @@ class EditorTab
         'solution_rejected' => 'Solution Rejected',
         'delete'            => 'Ticket Deleted',
         'update'            => 'Ticket Updated (other)',
+        // Change events
+        'change_create'            => 'Change Created',
+        'change_status_changed'    => 'Change Status Changed',
+        'change_update'            => 'Change Updated (other)',
+        'change_delete'            => 'Change Deleted',
+        'change_followup'          => 'Change Commented',
+        'change_solution'          => 'Change Solution Proposed',
+        'change_solution_approved' => 'Change Solution Approved',
+        'change_solution_rejected' => 'Change Solution Rejected',
+        'change_approval'          => 'Change Approval Requested',
+        'change_approved'          => 'Change Approved',
+        'change_rejected'          => 'Change Rejected',
+    ];
+
+    /** Events grouped by target for UI filtering */
+    public const EVENTS_BY_TARGET = [
+        'Ticket' => [
+            'create', 'followup', 'approval', 'approved', 'rejected',
+            'status_changed', 'members_change', 'solution', 'solution_approved',
+            'solution_rejected', 'delete', 'update',
+        ],
+        'Change' => [
+            'change_create', 'change_status_changed', 'change_update', 'change_delete',
+            'change_followup', 'change_solution', 'change_solution_approved',
+            'change_solution_rejected', 'change_approval', 'change_approved', 'change_rejected',
+        ],
     ];
 
     public const RULE_ACTIVE_OPTIONS = [
@@ -43,25 +71,33 @@ class EditorTab
     /** Macros for message template by target (order defines autocomplete order) */
     public const RULE_MACROS_BY_TARGET = [
         'Ticket' => ['id', 'title', 'urgency', 'priority', 'type', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
+        'Change' => ['id', 'title', 'urgency', 'impact', 'priority', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
     ];
 
     /** Extra macros available only for specific events (merged on top of base macros) */
     public const RULE_MACROS_EXTRA_BY_EVENT = [
-        'approval' => ['approver'],
-        'approved' => ['approver'],
-        'rejected' => ['approver'],
+        'approval'          => ['approver'],
+        'approved'          => ['approver'],
+        'rejected'          => ['approver'],
+        'change_approval'   => ['approver'],
+        'change_approved'   => ['approver'],
+        'change_rejected'   => ['approver'],
     ];
 
     /** Recipient macros by target */
     public const RECIPIENT_OPTIONS_BY_TARGET = [
         'Ticket' => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
+        'Change' => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
     ];
 
     /** Extra recipient options available only for specific events */
     public const RECIPIENT_OPTIONS_EXTRA_BY_EVENT = [
-        'approval' => ['approver' => 'approver'],
-        'approved' => ['approver' => 'approver'],
-        'rejected' => ['approver' => 'approver'],
+        'approval'          => ['approver' => 'approver'],
+        'approved'          => ['approver' => 'approver'],
+        'rejected'          => ['approver' => 'approver'],
+        'change_approval'   => ['approver' => 'approver'],
+        'change_approved'   => ['approver' => 'approver'],
+        'change_rejected'   => ['approver' => 'approver'],
     ];
 
     public const DEFAULT_RULE_NAME = '[Mattermost] -> Send notifications to all';
@@ -173,6 +209,7 @@ class EditorTab
             'save_filter_url'       => $save_filter_url,
             'targets'               => $targets,
             'events'                => $events,
+            'events_by_target'      => self::EVENTS_BY_TARGET,
             'active_options'        => $active_options,
             'default_rule_name'     => self::DEFAULT_RULE_NAME,
             'default_recipient'     => self::DEFAULT_RECIPIENT,

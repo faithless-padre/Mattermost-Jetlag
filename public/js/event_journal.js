@@ -93,7 +93,13 @@ window.mjlEventJournalInit = function () {
         var row = '<div class="' + rowClass + '" data-ej-key="' + esc(group.key) + '">'
             + '<span class="mjl-ej-chevron"><i class="ti ti-chevron-right"></i></span>'
             + '<span class="mjl-ej-ticket"><strong>' + esc(group.target_id) + '</strong></span>'
-            + '<span class="mjl-ej-target"><i class="ti ti-ticket"></i><span class="badge bg-blue-lt text-blue">' + esc(group.target) + '</span></span>'
+            + (function () {
+                var t = group.target;
+                if (t === 'Change') {
+                    return '<span class="mjl-ej-target"><i class="ti ti-switch-3"></i><span class="badge bg-orange-lt text-orange">' + esc(t) + '</span></span>';
+                }
+                return '<span class="mjl-ej-target"><i class="ti ti-ticket"></i><span class="badge bg-blue-lt text-blue">' + esc(t) + '</span></span>';
+            })()
             + '<span class="mjl-ej-name"><i class="ti ti-file-text"></i><strong title="' + esc(ticketName) + '">' + esc(ticketName) + '</strong></span>'
             + '<span class="mjl-ej-initiator"><i class="ti ti-user"></i>' + esc(group.initiator || '—') + '</span>'
             + '<span class="mjl-ej-urgency"><i class="ti ti-flame"></i>' + esc(group.urgency || '—') + '</span>'
