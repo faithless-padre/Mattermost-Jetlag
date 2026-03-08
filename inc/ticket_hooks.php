@@ -207,12 +207,13 @@ function plugin_mattermostjetlag_build_ticket_log_data(CommonDBTM $ticket, strin
     $vot = $vo['ticket'] ?? []; // ticket-specific overrides
 
     $statusMap = [
-        1 => 'New',
-        2 => 'Assigned',
-        3 => 'Processing (planned)',
-        4 => 'Pending',
-        5 => 'Solved',
-        6 => 'Closed',
+        1  => 'New',
+        10 => 'Approval',
+        2  => 'Processing (assigned)',
+        3  => 'Processing (planned)',
+        4  => 'Pending',
+        5  => 'Solved',
+        6  => 'Closed',
     ];
     $statusCode   = (int) ($ticket->fields['status'] ?? 0);
     $ticketStatus = $vot['status'][(string) $statusCode]
@@ -226,9 +227,13 @@ function plugin_mattermostjetlag_build_ticket_log_data(CommonDBTM $ticket, strin
         ?? null;
 
     $urgencyCode  = (int) ($ticket->fields['urgency'] ?? 0);
+    $impactCode   = (int) ($ticket->fields['impact'] ?? 0);
     $priorityCode = (int) ($ticket->fields['priority'] ?? 0);
     $ticketUrgency  = $urgencyCode > 0
         ? ($vot['urgency'][(string) $urgencyCode] ?? \CommonITILObject::getUrgencyName($urgencyCode))
+        : null;
+    $ticketImpact   = $impactCode > 0
+        ? ($vot['impact'][(string) $impactCode] ?? \CommonITILObject::getImpactName($impactCode))
         : null;
     $ticketPriority = $priorityCode > 0
         ? ($vot['priority'][(string) $priorityCode] ?? \CommonITILObject::getPriorityName($priorityCode))
@@ -303,6 +308,7 @@ function plugin_mattermostjetlag_build_ticket_log_data(CommonDBTM $ticket, strin
         'subject'          => $ticketName,
         'type'             => $ticketType,
         'urgency'          => $ticketUrgency,
+        'impact'           => $ticketImpact,
         'priority'         => $ticketPriority,
         'category'         => $ticketCategory,
         'status'           => $ticketStatus,

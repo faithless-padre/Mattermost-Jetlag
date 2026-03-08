@@ -53,12 +53,13 @@ class VariablesOverrideTab
                 'color'  => 'bg-blue',
                 'groups' => [
                     'status'   => [
-                        1 => 'New',
-                        2 => 'Assigned',
-                        3 => 'Processing (planned)',
-                        4 => 'Pending',
-                        5 => 'Solved',
-                        6 => 'Closed',
+                        1  => 'New',
+                        10 => 'Approval',
+                        2  => 'Processing (assigned)',
+                        3  => 'Processing (planned)',
+                        4  => 'Pending',
+                        5  => 'Solved',
+                        6  => 'Closed',
                     ],
                     'type'     => [
                         1 => 'Incident',
@@ -100,13 +101,13 @@ class VariablesOverrideTab
                 'groups' => [
                     'status'   => [
                         1 => 'New',
-                        2 => 'Assigned',
+                        7 => 'Accepted',
+                        2 => 'Processing (assigned)',
                         3 => 'Processing (planned)',
                         4 => 'Pending',
                         5 => 'Solved',
-                        6 => 'Closed',
-                        7 => 'Accepted',
                         8 => 'Under observation',
+                        6 => 'Closed',
                     ],
                     'urgency'  => self::urgencyDefaults(),
                     'impact'   => self::impactDefaults(),

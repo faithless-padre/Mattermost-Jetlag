@@ -804,7 +804,7 @@ if (isset($_POST['update_debug_config'])) {
 
 if (isset($_POST['update_variables_override'])) {
     $validTypes  = ['ticket', 'change', 'problem'];
-    $validGroups = ['status', 'urgency', 'priority', 'type'];
+    $validGroups = ['status', 'urgency', 'impact', 'priority', 'type'];
     $overrides   = [];
     foreach ($validTypes as $t) {
         $typeData = $_POST[$t] ?? [];
