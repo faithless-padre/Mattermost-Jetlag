@@ -14,10 +14,12 @@ window.mjlEditorInit = function () {
     var macrosExtraByEvent = {};
     var recipientOptionsByTarget = {};
     var recipientOptionsExtraByEvent = {};
+    var eventsByTarget = {};
     try { macrosByTarget = JSON.parse(root.dataset.macrosByTarget || '{}'); } catch (e) {}
     try { macrosExtraByEvent = JSON.parse(root.dataset.macrosExtraByEvent || '{}'); } catch (e) {}
     try { recipientOptionsByTarget = JSON.parse(root.dataset.recipientOptionsByTarget || '{}'); } catch (e) {}
     try { recipientOptionsExtraByEvent = JSON.parse(root.dataset.recipientOptionsExtraByEvent || '{}'); } catch (e) {}
+    try { eventsByTarget = JSON.parse(root.dataset.eventsByTarget || '{}'); } catch (e) {}
 
     var ruleNameInput   = document.getElementById('mjl_rule_name');
     var recipientInput  = document.getElementById('mjl_rule_recipient');
@@ -469,6 +471,34 @@ window.mjlEditorInit = function () {
         targetSelect,
         eventSelect
     );
+
+    /* ── Event dropdown filtering by target ── */
+    function filterEventsByTarget(target) {
+        if (!eventSelect || !eventsByTarget || !Object.keys(eventsByTarget).length) return;
+        var allowed = eventsByTarget[target] || null;
+        var options = eventSelect.options;
+        var currentVal = eventSelect.value;
+        var firstVisible = null;
+        for (var i = 0; i < options.length; i++) {
+            var opt = options[i];
+            var show = !allowed || allowed.indexOf(opt.value) !== -1;
+            opt.style.display = show ? '' : 'none';
+            if (show && firstVisible === null) firstVisible = opt.value;
+        }
+        // If current selection is now hidden, switch to first visible option
+        var currentOpt = eventSelect.querySelector('option[value="' + currentVal + '"]');
+        if (currentOpt && currentOpt.style.display === 'none' && firstVisible !== null) {
+            eventSelect.value = firstVisible;
+        }
+    }
+
+    if (targetSelect && eventSelect && Object.keys(eventsByTarget).length) {
+        targetSelect.addEventListener('change', function () {
+            filterEventsByTarget(targetSelect.value);
+        });
+        // Apply filtering on initial load
+        filterEventsByTarget(targetSelect.value);
+    }
 
     /* ── Initial state ── */
     validateRuleName();

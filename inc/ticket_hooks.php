@@ -11,6 +11,7 @@
  * -------------------------------------------------------------------------
  */
 
+use Change;
 use CommonDBTM;
 use GlpiPlugin\Mattermostjetlag\Config;
 use GlpiPlugin\Mattermostjetlag\Config\VariablesOverrideTab;
@@ -55,6 +56,7 @@ function plugin_mattermostjetlag_get_variables_override(): array
 function plugin_mattermostjetlag_map_action_to_rule_event(string $action): ?string
 {
     $mapping = [
+        // Ticket events
         'create'         => 'create',
         'update'         => 'update',
         'followup'       => 'followup',
@@ -67,15 +69,39 @@ function plugin_mattermostjetlag_map_action_to_rule_event(string $action): ?stri
         'solution_approved' => 'solution_approved',
         'solution_rejected' => 'solution_rejected',
         'delete'            => 'delete',
+        // Change events (prefixed to avoid collision in DB rule.event column)
+        'change_create'            => 'change_create',
+        'change_update'            => 'change_update',
+        'change_status_changed'    => 'change_status_changed',
+        'change_delete'            => 'change_delete',
+        'change_followup'          => 'change_followup',
+        'change_solution'          => 'change_solution',
+        'change_solution_approved' => 'change_solution_approved',
+        'change_solution_rejected' => 'change_solution_rejected',
+        'change_approval'          => 'change_approval',
+        'change_approved'          => 'change_approved',
+        'change_rejected'          => 'change_rejected',
     ];
     return $mapping[$action] ?? null;
 }
 
 /**
- * All hooks target Ticket.
+ * Determine the rule target (Ticket or Change) based on the action and item type.
  */
 function plugin_mattermostjetlag_determine_rule_target(string $action, CommonDBTM $item): string
 {
+    $type = $item::getType();
+    // Change-specific item types
+    if (in_array($type, ['Change', 'ChangeValidation'], true)) {
+        return 'Change';
+    }
+    // ITILFollowup and ITILSolution can belong to either Ticket or Change
+    if (in_array($type, ['ITILFollowup', 'ITILSolution'], true)) {
+        $parentType = $item->fields['itemtype'] ?? 'Ticket';
+        if ($parentType === 'Change') {
+            return 'Change';
+        }
+    }
     return 'Ticket';
 }
 
@@ -125,6 +151,20 @@ function plugin_mattermostjetlag_get_matching_rules(string $action, CommonDBTM $
         } elseif ($item::getType() === 'TicketValidation' && isset($item->fields['tickets_id'])) {
             $filterItem = new Ticket();
             if (!$filterItem->getFromDB((int) $item->fields['tickets_id'])) {
+                return [];
+            }
+        }
+    } elseif ($ruleTarget === 'Change') {
+        if ($item::getType() === 'Change') {
+            $filterItem = $item;
+        } elseif (in_array($item::getType(), ['ITILFollowup', 'ITILSolution'], true) && isset($item->fields['items_id'])) {
+            $filterItem = new Change();
+            if (!$filterItem->getFromDB((int) $item->fields['items_id'])) {
+                return [];
+            }
+        } elseif ($item::getType() === 'ChangeValidation' && isset($item->fields['changes_id'])) {
+            $filterItem = new Change();
+            if (!$filterItem->getFromDB((int) $item->fields['changes_id'])) {
                 return [];
             }
         }
@@ -189,6 +229,185 @@ function plugin_mattermostjetlag_load_ticket_actors_from_db(int $ticketId): arra
         'observer_ids'  => array_values(array_unique($observerIds)),
         'assignee_ids'  => array_values(array_unique($assigneeIds)),
     ];
+}
+
+/**
+ * Загрузка акторов из glpi_changes_users.
+ */
+function plugin_mattermostjetlag_load_change_actors_from_db(int $changeId): array
+{
+    global $DB;
+
+    $requesterIds = [];
+    $observerIds  = [];
+    $assigneeIds  = [];
+
+    if ($changeId <= 0) {
+        return ['requester_ids' => [], 'observer_ids' => [], 'assignee_ids' => []];
+    }
+
+    $actors = $DB->request([
+        'FROM'   => 'glpi_changes_users',
+        'WHERE'  => ['changes_id' => $changeId],
+    ]);
+
+    foreach ($actors as $actor) {
+        $userId = (int) ($actor['users_id'] ?? 0);
+        $type   = (int) ($actor['type'] ?? 0);
+        if ($userId <= 0) {
+            continue;
+        }
+        if ($type === 1) {
+            $requesterIds[] = $userId;
+        } elseif ($type === 2) {
+            $assigneeIds[] = $userId;
+        } elseif ($type === 3) {
+            $observerIds[] = $userId;
+        }
+    }
+
+    return [
+        'requester_ids' => array_values(array_unique($requesterIds)),
+        'observer_ids'  => array_values(array_unique($observerIds)),
+        'assignee_ids'  => array_values(array_unique($assigneeIds)),
+    ];
+}
+
+/**
+ * Сбор данных изменения для лога.
+ */
+function plugin_mattermostjetlag_build_change_log_data(CommonDBTM $change, string $action, array $extra = []): array
+{
+    if ($change::getType() !== 'Change') {
+        return [];
+    }
+
+    $changeId   = $change->getID();
+    $changeName = $change->fields['name'] ?? '';
+
+    $vo  = plugin_mattermostjetlag_get_variables_override();
+    $voc = $vo['change'] ?? []; // change-specific overrides
+
+    $statusMap = [
+        1  => 'New',
+        4  => 'Pending',
+        5  => 'Applied',
+        6  => 'Closed',
+        7  => 'Accepted',
+        8  => 'Review',
+        9  => 'Evaluation',
+        10 => 'Approval',
+        11 => 'Testing',
+        12 => 'Qualification',
+        13 => 'Refused',
+        14 => 'Cancelled',
+    ];
+    $statusCode   = (int) ($change->fields['status'] ?? 0);
+    $changeStatus = $voc['status'][(string) $statusCode]
+        ?? $statusMap[$statusCode]
+        ?? null;
+
+    $urgencyCode  = (int) ($change->fields['urgency'] ?? 0);
+    $impactCode   = (int) ($change->fields['impact'] ?? 0);
+    $priorityCode = (int) ($change->fields['priority'] ?? 0);
+    $changeUrgency  = $urgencyCode > 0
+        ? ($voc['urgency'][(string) $urgencyCode] ?? \CommonITILObject::getUrgencyName($urgencyCode))
+        : null;
+    $changeImpact   = $impactCode > 0
+        ? ($voc['impact'][(string) $impactCode] ?? \CommonITILObject::getImpactName($impactCode))
+        : null;
+    $changePriority = $priorityCode > 0
+        ? ($voc['priority'][(string) $priorityCode] ?? \CommonITILObject::getPriorityName($priorityCode))
+        : null;
+
+    $changeCategory = null;
+    if (!empty($change->fields['itilcategories_id'])) {
+        $catId = (int) $change->fields['itilcategories_id'];
+        if ($catId > 0) {
+            $cat = new \ITILCategory();
+            if ($cat->getFromDB($catId)) {
+                $changeCategory = $cat->getName();
+            }
+        }
+    }
+
+    $requesterIds = [];
+    $observerIds  = [];
+    $assigneeIds  = [];
+
+    if (property_exists($change, 'input') && is_array($change->input ?? null) && !empty($change->input)) {
+        $input = $change->input;
+        $extractIds = function (array $src, string $key): array {
+            if (!isset($src[$key]) || !is_array($src[$key])) {
+                return [];
+            }
+            $ids = [];
+            foreach ($src[$key] as $v) {
+                $id = (int) $v;
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+            return array_values(array_unique($ids));
+        };
+        $requesterIds = $extractIds($input, '_users_id_requester');
+        $observerIds  = $extractIds($input, '_users_id_observer');
+        $assigneeIds  = $extractIds($input, '_users_id_assign');
+    }
+
+    if (empty($requesterIds) && empty($observerIds) && empty($assigneeIds)) {
+        $actors = plugin_mattermostjetlag_load_change_actors_from_db($changeId);
+        $requesterIds = $actors['requester_ids'];
+        $observerIds  = $actors['observer_ids'];
+        $assigneeIds  = $actors['assignee_ids'];
+    }
+
+    $idsToLogins = function (array $ids): array {
+        if (empty($ids)) {
+            return [];
+        }
+        $user   = new User();
+        $result = [];
+        foreach ($ids as $id) {
+            if ($id <= 0) {
+                continue;
+            }
+            if ($user->getFromDB($id)) {
+                $login = $user->fields['login'] ?? $user->fields['name'] ?? null;
+                if (!empty($login)) {
+                    $result[] = $login;
+                }
+            }
+        }
+        return array_values(array_unique($result));
+    };
+
+    $data = [
+        'datetime'         => date('c'),
+        'action'           => $action,
+        'ticket_id'        => $changeId, // reuse ticket_id key for dispatch compatibility
+        'subject'          => $changeName,
+        'urgency'          => $changeUrgency,
+        'impact'           => $changeImpact,
+        'priority'         => $changePriority,
+        'category'         => $changeCategory,
+        'status'           => $changeStatus,
+        'event'            => plugin_mattermostjetlag_map_action_to_rule_event($action) ?? '',
+        'requester_logins' => $idsToLogins($requesterIds),
+        'observer_logins'  => $idsToLogins($observerIds),
+        'assignee_logins'  => $idsToLogins($assigneeIds),
+        '_item_class'      => 'Change',
+    ];
+
+    if (property_exists($change, 'input') && is_array($change->input ?? null) && !empty($change->input)) {
+        $data['hook_input'] = $change->input;
+    }
+
+    if (!empty($extra)) {
+        $data = array_merge($data, $extra);
+    }
+
+    return $data;
 }
 
 /**
@@ -338,40 +557,6 @@ function plugin_mattermostjetlag_render_rule_messages_for_ticket(array $matching
         return '';
     }
 
-    $ticketId        = (int) ($data['ticket_id'] ?? 0);
-    $subject         = (string) ($data['subject'] ?? '');
-    $status          = (string) ($data['status'] ?? '');
-    $type            = (string) ($data['type'] ?? '');
-    $urgency         = (string) ($data['urgency'] ?? '');
-    $priority        = (string) ($data['priority'] ?? '');
-    $category        = (string) ($data['category'] ?? '');
-    $event           = (string) ($data['event'] ?? '');
-    $requesterLogins = is_array($data['requester_logins'] ?? null) ? $data['requester_logins'] : [];
-    $observerLogins  = is_array($data['observer_logins'] ?? null) ? $data['observer_logins'] : [];
-    $assigneeLogins  = is_array($data['assignee_logins'] ?? null) ? $data['assignee_logins'] : [];
-
-    $formatLogins = static function (array $logins): string {
-        if (empty($logins)) {
-            return '';
-        }
-        $parts = [];
-        foreach ($logins as $login) {
-            $login = (string) $login;
-            if ($login === '') {
-                continue;
-            }
-            $parts[] = str_starts_with($login, '@') ? $login : '@' . $login;
-        }
-        return implode(', ', $parts);
-    };
-
-    $link = '';
-    if ($ticketId > 0) {
-        $relative = Ticket::getFormURLWithID($ticketId, false);
-        global $CFG_GLPI;
-        $link = ($CFG_GLPI['url_base'] ?? '') . $relative;
-    }
-
     foreach ($matchingRules as $rule) {
         if (!$rule instanceof NotificationRule) {
             continue;
@@ -380,20 +565,7 @@ function plugin_mattermostjetlag_render_rule_messages_for_ticket(array $matching
         if ($template === '') {
             continue;
         }
-        $replacements = [
-            '{id}'        => $ticketId > 0 ? (string) $ticketId : '',
-            '{title}'     => $subject,
-            '{status}'    => $status,
-            '{type}'      => $type,
-            '{event}'     => $event,
-            '{urgency}'   => $urgency,
-            '{priority}'  => $priority,
-            '{category}'  => $category,
-            '{link}'      => $link,
-            '{requester}' => $formatLogins($requesterLogins),
-            '{observer}'  => $formatLogins($observerLogins),
-            '{assigned}'  => $formatLogins($assigneeLogins),
-        ];
+        $replacements = plugin_mattermostjetlag_build_replacements($data);
         return json_encode(
             ['message' => strtr($template, $replacements)],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
@@ -450,7 +622,8 @@ function plugin_mattermostjetlag_expand_recipients(string $recipientStr, array $
  */
 function plugin_mattermostjetlag_build_replacements(array $data): array
 {
-    $ticketId        = (int) ($data['ticket_id'] ?? 0);
+    $itemId          = (int) ($data['ticket_id'] ?? 0);
+    $itemClass       = (string) ($data['_item_class'] ?? 'Ticket');
     $requesterLogins = is_array($data['requester_logins'] ?? null) ? $data['requester_logins'] : [];
     $observerLogins  = is_array($data['observer_logins'] ?? null) ? $data['observer_logins'] : [];
     $assigneeLogins  = is_array($data['assignee_logins'] ?? null) ? $data['assignee_logins'] : [];
@@ -468,9 +641,13 @@ function plugin_mattermostjetlag_build_replacements(array $data): array
     };
 
     $link = '';
-    if ($ticketId > 0) {
-        $relative = Ticket::getFormURLWithID($ticketId, false);
+    if ($itemId > 0) {
         global $CFG_GLPI;
+        if ($itemClass === 'Change') {
+            $relative = Change::getFormURLWithID($itemId, false);
+        } else {
+            $relative = Ticket::getFormURLWithID($itemId, false);
+        }
         $link = ($CFG_GLPI['url_base'] ?? '') . $relative;
     }
 
@@ -480,12 +657,13 @@ function plugin_mattermostjetlag_build_replacements(array $data): array
         : '';
 
     return [
-        '{id}'        => $ticketId > 0 ? (string) $ticketId : '',
+        '{id}'        => $itemId > 0 ? (string) $itemId : '',
         '{title}'     => (string) ($data['subject'] ?? ''),
         '{status}'    => (string) ($data['status'] ?? ''),
         '{type}'      => (string) ($data['type'] ?? ''),
         '{event}'     => (string) ($data['event'] ?? ''),
         '{urgency}'   => (string) ($data['urgency'] ?? ''),
+        '{impact}'    => (string) ($data['impact'] ?? ''),
         '{priority}'  => (string) ($data['priority'] ?? ''),
         '{category}'  => (string) ($data['category'] ?? ''),
         '{link}'      => $link,
@@ -658,7 +836,7 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
             }
 
             SendLog::record(
-                'Ticket',
+                (string) ($data['_item_class'] ?? 'Ticket'),
                 (int) ($data['ticket_id'] ?? 0),
                 (string) ($data['event'] ?? ''),
                 $rule->getID(),
@@ -787,15 +965,49 @@ function plugin_mattermostjetlag_detect_solution_followup_event(Ticket $ticket):
 
 function plugin_mattermostjetlag_item_add_ITILFollowup(CommonDBTM $item): void
 {
-    if (!isset($item->fields['itemtype'], $item->fields['items_id']) || $item->fields['itemtype'] !== 'Ticket') {
+    if (!isset($item->fields['itemtype'], $item->fields['items_id'])) {
         return;
     }
-    $ticketId = (int) $item->fields['items_id'];
-    if ($ticketId <= 0) {
+    $parentType = $item->fields['itemtype'];
+    $parentId   = (int) $item->fields['items_id'];
+    if ($parentId <= 0) {
+        return;
+    }
+
+    if ($parentType === 'Change') {
+        $change = new Change();
+        if (!$change->getFromDB($parentId)) {
+            return;
+        }
+        if (plugin_mattermostjetlag_ticket_is_too_fresh($change)) {
+            return;
+        }
+        $action = 'change_followup';
+        $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+        $data = plugin_mattermostjetlag_build_change_log_data($change, $action);
+        if (empty($data)) {
+            return;
+        }
+        if (!empty($item->input) && is_array($item->input)) {
+            $data['hook_input'] = $item->input;
+        }
+        $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+        if (empty($matchingRules)) {
+            $data['matching_rules_note'] = 'no matching rules';
+        } else {
+            $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+            $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+        }
+        plugin_mattermostjetlag_log_debug('item_add_ITILFollowup[Change]', $action, $item, $change, $data);
+        plugin_mattermostjetlag_log_ticket($data);
+        return;
+    }
+
+    if ($parentType !== 'Ticket') {
         return;
     }
     $ticket = new Ticket();
-    if (!$ticket->getFromDB($ticketId)) {
+    if (!$ticket->getFromDB($parentId)) {
         return;
     }
     if (plugin_mattermostjetlag_ticket_is_too_fresh($ticket)) {
@@ -877,15 +1089,46 @@ function plugin_mattermostjetlag_item_add_TicketValidation(CommonDBTM $item): vo
 
 function plugin_mattermostjetlag_item_add_ITILSolution(CommonDBTM $item): void
 {
-    if ($item->fields['itemtype'] !== 'Ticket') {
+    $parentType = $item->fields['itemtype'] ?? '';
+    $parentId   = (int) ($item->fields['items_id'] ?? 0);
+    if ($parentId <= 0) {
         return;
     }
-    $ticketId = (int) ($item->fields['items_id'] ?? 0);
-    if ($ticketId <= 0) {
+
+    if ($parentType === 'Change') {
+        $change = new Change();
+        if (!$change->getFromDB($parentId)) {
+            return;
+        }
+        if (plugin_mattermostjetlag_ticket_is_too_fresh($change)) {
+            return;
+        }
+        $action = 'change_solution';
+        $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+        $data = plugin_mattermostjetlag_build_change_log_data($change, $action);
+        if (empty($data)) {
+            return;
+        }
+        if (!empty($item->input) && is_array($item->input)) {
+            $data['hook_input'] = $item->input;
+        }
+        $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+        if (empty($matchingRules)) {
+            $data['matching_rules_note'] = 'no matching rules';
+        } else {
+            $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+            $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+        }
+        plugin_mattermostjetlag_log_debug('item_add_ITILSolution[Change]', $action, $item, $change, $data);
+        plugin_mattermostjetlag_log_ticket($data);
+        return;
+    }
+
+    if ($parentType !== 'Ticket') {
         return;
     }
     $ticket = new Ticket();
-    if (!$ticket->getFromDB($ticketId)) {
+    if (!$ticket->getFromDB($parentId)) {
         return;
     }
     if (plugin_mattermostjetlag_ticket_is_too_fresh($ticket)) {
@@ -918,21 +1161,52 @@ function plugin_mattermostjetlag_item_update_ITILSolution(CommonDBTM $item): voi
     if ($newStatus !== 3 && $newStatus !== 4) {
         return;
     }
-    if ($item->fields['itemtype'] !== 'Ticket') {
+    $parentType = $item->fields['itemtype'] ?? '';
+    $parentId   = (int) ($item->fields['items_id'] ?? 0);
+    if ($parentId <= 0) {
         return;
     }
-    $ticketId = (int) ($item->fields['items_id'] ?? 0);
-    if ($ticketId <= 0) {
+
+    if ($parentType === 'Change') {
+        $action = $newStatus === 3 ? 'change_solution_approved' : 'change_solution_rejected';
+        $change = new Change();
+        if (!$change->getFromDB($parentId)) {
+            return;
+        }
+        if (plugin_mattermostjetlag_ticket_is_too_fresh($change)) {
+            return;
+        }
+        $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+        $data = plugin_mattermostjetlag_build_change_log_data($change, $action);
+        if (empty($data)) {
+            return;
+        }
+        if (!empty($item->input) && is_array($item->input)) {
+            $data['hook_input'] = $item->input;
+        }
+        $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+        if (empty($matchingRules)) {
+            $data['matching_rules_note'] = 'no matching rules';
+        } else {
+            $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+            $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+        }
+        plugin_mattermostjetlag_log_debug('item_update_ITILSolution[Change]', $action, $item, $change, $data);
+        plugin_mattermostjetlag_log_ticket($data);
         return;
     }
+
+    if ($parentType !== 'Ticket') {
+        return;
+    }
+    $action = $newStatus === 3 ? 'solution_approved' : 'solution_rejected';
     $ticket = new Ticket();
-    if (!$ticket->getFromDB($ticketId)) {
+    if (!$ticket->getFromDB($parentId)) {
         return;
     }
     if (plugin_mattermostjetlag_ticket_is_too_fresh($ticket)) {
         return;
     }
-    $action = $newStatus === 3 ? 'solution_approved' : 'solution_rejected';
     $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
     $data = plugin_mattermostjetlag_build_ticket_log_data($ticket, $action);
     if (empty($data)) {
@@ -1039,5 +1313,185 @@ function plugin_mattermostjetlag_item_update_TicketValidation(CommonDBTM $item):
         $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
     }
     plugin_mattermostjetlag_log_debug('item_update_TicketValidation', $action, $item, $ticket, $data);
+    plugin_mattermostjetlag_log_ticket($data);
+}
+
+// ── Change Hooks ──
+
+function plugin_mattermostjetlag_item_add_Change(CommonDBTM $item): void
+{
+    $action = 'change_create';
+    $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+    $data = plugin_mattermostjetlag_build_change_log_data($item, $action);
+    if (empty($data)) {
+        return;
+    }
+    $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+    if (empty($matchingRules)) {
+        $data['matching_rules_note'] = 'no matching rules';
+    } else {
+        $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+    }
+    plugin_mattermostjetlag_log_debug('item_add_Change', $action, $item, null, $data);
+    plugin_mattermostjetlag_log_ticket($data);
+}
+
+function plugin_mattermostjetlag_item_update_Change(CommonDBTM $item): void
+{
+    if (plugin_mattermostjetlag_ticket_is_too_fresh($item)) {
+        return;
+    }
+    $updates = $item->updates ?? [];
+    if (in_array('status', $updates)) {
+        $action = 'change_status_changed';
+    } else {
+        $action = 'change_update';
+    }
+
+    $baseData = plugin_mattermostjetlag_build_change_log_data($item, $action);
+    if (empty($baseData)) {
+        return;
+    }
+
+    $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+    $data = $baseData;
+    $data['action'] = $action;
+    $data['event']  = plugin_mattermostjetlag_map_action_to_rule_event($action) ?? '';
+    $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+    if (empty($matchingRules)) {
+        $data['matching_rules_note'] = 'no matching rules';
+    } else {
+        $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+    }
+    plugin_mattermostjetlag_log_debug('item_update_Change', $action, $item, null, $data);
+    plugin_mattermostjetlag_log_ticket($data);
+}
+
+function plugin_mattermostjetlag_pre_item_delete_Change(CommonDBTM $item): void
+{
+    $action = 'change_delete';
+    $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+    $data = plugin_mattermostjetlag_build_change_log_data($item, $action);
+    if (empty($data)) {
+        return;
+    }
+    $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+    if (empty($matchingRules)) {
+        $data['matching_rules_note'] = 'no matching rules';
+    } else {
+        $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+    }
+    plugin_mattermostjetlag_log_debug('pre_item_delete_Change', $action, $item, null, $data);
+    plugin_mattermostjetlag_log_ticket($data);
+}
+
+function plugin_mattermostjetlag_item_add_ChangeValidation(CommonDBTM $item): void
+{
+    $changeId = (int) ($item->fields['changes_id'] ?? 0);
+    if ($changeId <= 0) {
+        return;
+    }
+    $change = new Change();
+    if (!$change->getFromDB($changeId)) {
+        return;
+    }
+    if (plugin_mattermostjetlag_ticket_is_too_fresh($change)) {
+        return;
+    }
+    $approvalTargetType  = $item->fields['itemtype_target'] ?? null;
+    $approvalTargetId    = (int) ($item->fields['items_id_target'] ?? 0);
+    $approvalTargetLabel = null;
+    if ($approvalTargetType && $approvalTargetId > 0) {
+        if ($approvalTargetType === User::class || $approvalTargetType === 'User') {
+            $user = new User();
+            if ($user->getFromDB($approvalTargetId)) {
+                $approvalTargetLabel = $user->fields['login'] ?? $user->fields['name'] ?? $user->getName();
+            }
+        } elseif (is_a($approvalTargetType, CommonDBTM::class, true)) {
+            $target = new $approvalTargetType();
+            if ($target->getFromDB($approvalTargetId)) {
+                $approvalTargetLabel = $target->getName();
+            }
+        }
+    }
+    $extra = [
+        'approval_target_type' => $approvalTargetType,
+        'approval_target_id'   => $approvalTargetId ?: null,
+        'approval_target'      => $approvalTargetLabel,
+    ];
+    $action = 'change_approval';
+    $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+    $data = plugin_mattermostjetlag_build_change_log_data($change, $action, $extra);
+    if (empty($data)) {
+        return;
+    }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
+    $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+    if (empty($matchingRules)) {
+        $data['matching_rules_note'] = 'no matching rules';
+    } else {
+        $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+    }
+    plugin_mattermostjetlag_log_debug('item_add_ChangeValidation', $action, $item, $change, $data);
+    plugin_mattermostjetlag_log_ticket($data);
+}
+
+function plugin_mattermostjetlag_item_update_ChangeValidation(CommonDBTM $item): void
+{
+    // CommonITILValidation: ACCEPTED = 3, REFUSED = 4
+    $newStatus = (int) ($item->input['status'] ?? 0);
+    if ($newStatus !== 3 && $newStatus !== 4) {
+        return;
+    }
+
+    $changeId = (int) ($item->fields['changes_id'] ?? 0);
+    if ($changeId <= 0) {
+        return;
+    }
+    $change = new Change();
+    if (!$change->getFromDB($changeId)) {
+        return;
+    }
+
+    $action = $newStatus === 3 ? 'change_approved' : 'change_rejected';
+
+    $approverType  = $item->fields['itemtype_target'] ?? null;
+    $approverId    = (int) ($item->fields['items_id_target'] ?? 0);
+    $approverLabel = null;
+    if ($approverType && $approverId > 0 && ($approverType === User::class || $approverType === 'User')) {
+        $user = new User();
+        if ($user->getFromDB($approverId)) {
+            $approverLabel = $user->fields['login'] ?? $user->fields['name'] ?? $user->getName();
+        }
+    }
+
+    $extra = [
+        'approval_target_type' => $approverType,
+        'approval_target_id'   => $approverId ?: null,
+        'approval_target'      => $approverLabel,
+    ];
+
+    $matchingRules = plugin_mattermostjetlag_get_matching_rules($action, $item);
+    $data = plugin_mattermostjetlag_build_change_log_data($change, $action, $extra);
+    if (empty($data)) {
+        return;
+    }
+    if (!empty($item->input) && is_array($item->input)) {
+        $data['hook_input'] = $item->input;
+    }
+    $data['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $matchingRules);
+    if (empty($matchingRules)) {
+        $data['matching_rules_note'] = 'no matching rules';
+    } else {
+        $data['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($matchingRules, $data);
+        $data['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($matchingRules, $data);
+    }
+    plugin_mattermostjetlag_log_debug('item_update_ChangeValidation', $action, $item, $change, $data);
     plugin_mattermostjetlag_log_ticket($data);
 }

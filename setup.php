@@ -22,9 +22,7 @@ if (!defined('PLUGIN_MATTERMOSTJETLAG_WEBDIR')) {
     define('PLUGIN_MATTERMOSTJETLAG_WEBDIR', $CFG_GLPI['root_doc'] . '/plugins/mattermostjetlag');
 }
 
-/**
- * Default Russian variable overrides — used on install and lazy migration.
- */
+
 function plugin_mattermostjetlag_default_variables_override(): string
 {
     $ru = [
@@ -109,18 +107,24 @@ function plugin_init_mattermostjetlag()
         'TicketValidation' => 'plugin_mattermostjetlag_item_add_TicketValidation',
         'Ticket_User'      => 'plugin_mattermostjetlag_item_add_Ticket_User',
         'ITILSolution'     => 'plugin_mattermostjetlag_item_add_ITILSolution',
+        'Change'           => 'plugin_mattermostjetlag_item_add_Change',
+        'ChangeValidation' => 'plugin_mattermostjetlag_item_add_ChangeValidation',
     ];
     $PLUGIN_HOOKS['item_update']['mattermostjetlag'] = [
         'Ticket'           => 'plugin_mattermostjetlag_item_update_Ticket',
         'TicketValidation' => 'plugin_mattermostjetlag_item_update_TicketValidation',
         'ITILSolution'     => 'plugin_mattermostjetlag_item_update_ITILSolution',
+        'Change'           => 'plugin_mattermostjetlag_item_update_Change',
+        'ChangeValidation' => 'plugin_mattermostjetlag_item_update_ChangeValidation',
     ];
     $PLUGIN_HOOKS['pre_item_delete']['mattermostjetlag'] = [
         'Ticket' => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
+        'Change' => 'plugin_mattermostjetlag_pre_item_delete_Change',
     ];
     // Force-purge (delete with $force=true) fires pre_item_purge, not pre_item_delete
     $PLUGIN_HOOKS['pre_item_purge']['mattermostjetlag'] = [
         'Ticket' => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
+        'Change' => 'plugin_mattermostjetlag_pre_item_delete_Change',
     ];
 
     // Config page (Setup > Plugins > Mattermost Jetlag or direct link)
