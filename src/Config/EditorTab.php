@@ -17,8 +17,9 @@ class EditorTab
     private const TEMPLATE = '@mattermostjetlag/config/editor.html.twig';
 
     public const RULE_TARGETS = [
-        'Ticket' => 'Ticket',
-        'Change' => 'Change',
+        'Ticket'  => 'Ticket',
+        'Change'  => 'Change',
+        'Problem' => 'Problem',
     ];
 
     public const RULE_EVENTS = [
@@ -47,6 +48,15 @@ class EditorTab
         'change_approval'          => 'Change Approval Requested',
         'change_approved'          => 'Change Approved',
         'change_rejected'          => 'Change Rejected',
+        // Problem events
+        'problem_create'            => 'Problem Created',
+        'problem_status_changed'    => 'Problem Status Changed',
+        'problem_update'            => 'Problem Updated (other)',
+        'problem_delete'            => 'Problem Deleted',
+        'problem_followup'          => 'Problem Commented',
+        'problem_solution'          => 'Problem Solution Proposed',
+        'problem_solution_approved' => 'Problem Solution Approved',
+        'problem_solution_rejected' => 'Problem Solution Rejected',
     ];
 
     /** Events grouped by target for UI filtering */
@@ -61,6 +71,11 @@ class EditorTab
             'change_followup', 'change_solution', 'change_solution_approved',
             'change_solution_rejected', 'change_approval', 'change_approved', 'change_rejected',
         ],
+        'Problem' => [
+            'problem_create', 'problem_status_changed', 'problem_update', 'problem_delete',
+            'problem_followup', 'problem_solution', 'problem_solution_approved',
+            'problem_solution_rejected',
+        ],
     ];
 
     public const RULE_ACTIVE_OPTIONS = [
@@ -71,7 +86,8 @@ class EditorTab
     /** Macros for message template by target (order defines autocomplete order) */
     public const RULE_MACROS_BY_TARGET = [
         'Ticket' => ['id', 'title', 'urgency', 'priority', 'type', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
-        'Change' => ['id', 'title', 'urgency', 'impact', 'priority', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
+        'Change'   => ['id', 'title', 'urgency', 'impact', 'priority', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
+        'Problem'  => ['id', 'title', 'urgency', 'impact', 'priority', 'category', 'assigned', 'requester', 'observer', 'event', 'status', 'link'],
     ];
 
     /** Extra macros available only for specific events (merged on top of base macros) */
@@ -87,7 +103,8 @@ class EditorTab
     /** Recipient macros by target */
     public const RECIPIENT_OPTIONS_BY_TARGET = [
         'Ticket' => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
-        'Change' => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
+        'Change'   => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
+        'Problem'  => ['assigned' => 'assigned', 'requester' => 'requester', 'observer' => 'observer'],
     ];
 
     /** Extra recipient options available only for specific events */

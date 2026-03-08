@@ -109,6 +109,7 @@ function plugin_init_mattermostjetlag()
         'ITILSolution'     => 'plugin_mattermostjetlag_item_add_ITILSolution',
         'Change'           => 'plugin_mattermostjetlag_item_add_Change',
         'ChangeValidation' => 'plugin_mattermostjetlag_item_add_ChangeValidation',
+        'Problem'          => 'plugin_mattermostjetlag_item_add_Problem',
     ];
     $PLUGIN_HOOKS['item_update']['mattermostjetlag'] = [
         'Ticket'           => 'plugin_mattermostjetlag_item_update_Ticket',
@@ -116,15 +117,18 @@ function plugin_init_mattermostjetlag()
         'ITILSolution'     => 'plugin_mattermostjetlag_item_update_ITILSolution',
         'Change'           => 'plugin_mattermostjetlag_item_update_Change',
         'ChangeValidation' => 'plugin_mattermostjetlag_item_update_ChangeValidation',
+        'Problem'          => 'plugin_mattermostjetlag_item_update_Problem',
     ];
     $PLUGIN_HOOKS['pre_item_delete']['mattermostjetlag'] = [
-        'Ticket' => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
-        'Change' => 'plugin_mattermostjetlag_pre_item_delete_Change',
+        'Ticket'  => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
+        'Change'  => 'plugin_mattermostjetlag_pre_item_delete_Change',
+        'Problem' => 'plugin_mattermostjetlag_pre_item_delete_Problem',
     ];
     // Force-purge (delete with $force=true) fires pre_item_purge, not pre_item_delete
     $PLUGIN_HOOKS['pre_item_purge']['mattermostjetlag'] = [
-        'Ticket' => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
-        'Change' => 'plugin_mattermostjetlag_pre_item_delete_Change',
+        'Ticket'  => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
+        'Change'  => 'plugin_mattermostjetlag_pre_item_delete_Change',
+        'Problem' => 'plugin_mattermostjetlag_pre_item_delete_Problem',
     ];
 
     // Config page (Setup > Plugins > Mattermost Jetlag or direct link)
