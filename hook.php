@@ -71,12 +71,17 @@ function plugin_mattermostjetlag_install()
             `last_test_error` text DEFAULT NULL,
             `extended_log` tinyint(1) NOT NULL DEFAULT 0,
             `simulate_send` tinyint(1) NOT NULL DEFAULT 0,
+            `variables_override` text DEFAULT NULL,
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
         $DB->doQuery($query);
-        $DB->insert($table, ['id' => 1, 'connection_type' => 'webhook']);
+        $DB->insert($table, [
+            'id'                 => 1,
+            'connection_type'    => 'webhook',
+            'variables_override' => plugin_mattermostjetlag_default_variables_override(),
+        ]);
     } else {
         if (!$DB->fieldExists($table, 'connection_type')) {
             $migration->addField($table, 'connection_type', "varchar(20) NOT NULL DEFAULT 'webhook'", ['after' => 'id']);
@@ -113,6 +118,18 @@ function plugin_mattermostjetlag_install()
         }
         if (!$DB->fieldExists($table, 'simulate_send')) {
             $migration->addField($table, 'simulate_send', 'tinyint(1) NOT NULL DEFAULT 0', ['after' => 'extended_log']);
+        }
+        if (!$DB->fieldExists($table, 'variables_override')) {
+            $migration->addField($table, 'variables_override', 'text DEFAULT NULL', ['after' => 'simulate_send']);
+            $migration->executeMigration();
+            // Pre-populate with Russian defaults for existing installations
+            $DB->update($table, ['variables_override' => plugin_mattermostjetlag_default_variables_override()], ['id' => 1]);
+        } elseif ($DB->fieldExists($table, 'variables_override')) {
+            // Apply Russian defaults if field is still empty (e.g. after reinstall without uninstall)
+            $row = $DB->request(['SELECT' => ['variables_override'], 'FROM' => $table, 'WHERE' => ['id' => 1]])->current();
+            if ($row && empty($row['variables_override'])) {
+                $DB->update($table, ['variables_override' => plugin_mattermostjetlag_default_variables_override()], ['id' => 1]);
+            }
         }
     }
 

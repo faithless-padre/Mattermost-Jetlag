@@ -23,12 +23,81 @@ if (!defined('PLUGIN_MATTERMOSTJETLAG_WEBDIR')) {
 }
 
 /**
+ * Default Russian variable overrides — used on install and lazy migration.
+ */
+function plugin_mattermostjetlag_default_variables_override(): string
+{
+    $ru = [
+        'ticket' => [
+            'status'   => [
+                '1'  => 'Новая',
+                '10' => 'На согласовании',
+                '2'  => 'В обработке (назначена)',
+                '3'  => 'В обработке (запланирована)',
+                '4'  => 'В ожидании',
+                '5'  => 'Решена',
+                '6'  => 'Закрыта',
+            ],
+            'type'     => ['1' => 'Инцидент', '2' => 'Запрос'],
+            'urgency'  => ['1' => 'Очень низкая', '2' => 'Низкая', '3' => 'Средняя', '4' => 'Высокая', '5' => 'Очень высокая'],
+            'impact'   => ['1' => 'Очень низкое', '2' => 'Низкое', '3' => 'Среднее', '4' => 'Высокое', '5' => 'Очень высокое'],
+            'priority' => ['1' => 'Очень низкий', '2' => 'Низкий', '3' => 'Средний', '4' => 'Высокий', '5' => 'Очень высокий'],
+        ],
+        'change' => [
+            'status'   => [
+                '1'  => 'Новое',
+                '4'  => 'В ожидании',
+                '5'  => 'Применено',
+                '6'  => 'Закрыто',
+                '7'  => 'Принято',
+                '8'  => 'Рецензия',
+                '9'  => 'Оценка',
+                '10' => 'Согласование',
+                '11' => 'Тестирование',
+                '12' => 'Квалификация',
+                '13' => 'Отклонено',
+                '14' => 'Отменено',
+            ],
+            'urgency'  => ['1' => 'Очень низкая', '2' => 'Низкая', '3' => 'Средняя', '4' => 'Высокая', '5' => 'Очень высокая'],
+            'impact'   => ['1' => 'Очень низкое', '2' => 'Низкое', '3' => 'Среднее', '4' => 'Высокое', '5' => 'Очень высокое'],
+            'priority' => ['1' => 'Очень низкий', '2' => 'Низкий', '3' => 'Средний', '4' => 'Высокий', '5' => 'Очень высокий'],
+        ],
+        'problem' => [
+            'status'   => [
+                '1' => 'Новая',
+                '7' => 'Принята',
+                '2' => 'В обработке (назначена)',
+                '3' => 'В обработке (запланирована)',
+                '4' => 'В ожидании',
+                '5' => 'Решена',
+                '8' => 'Под наблюдением',
+                '6' => 'Закрыта',
+            ],
+            'urgency'  => ['1' => 'Очень низкая', '2' => 'Низкая', '3' => 'Средняя', '4' => 'Высокая', '5' => 'Очень высокая'],
+            'impact'   => ['1' => 'Очень низкое', '2' => 'Низкое', '3' => 'Среднее', '4' => 'Высокое', '5' => 'Очень высокое'],
+            'priority' => ['1' => 'Очень низкий', '2' => 'Низкий', '3' => 'Средний', '4' => 'Высокий', '5' => 'Очень высокий'],
+        ],
+    ];
+    return json_encode($ru, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+/**
  * Init hooks of the plugin.
  * REQUIRED
  */
 function plugin_init_mattermostjetlag()
 {
-    global $PLUGIN_HOOKS;
+    global $PLUGIN_HOOKS, $DB;
+
+    // Lazy column migrations — runs on every plugin load, no-op after first run.
+    $table = GlpiPlugin\Mattermostjetlag\Config::getTable();
+    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'simulate_send')) {
+        $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `simulate_send` tinyint(1) NOT NULL DEFAULT 0 AFTER `extended_log`");
+    }
+    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'variables_override')) {
+        $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `variables_override` TEXT DEFAULT NULL AFTER `simulate_send`");
+        $DB->update($table, ['variables_override' => plugin_mattermostjetlag_default_variables_override()], ['id' => 1]);
+    }
 
     $PLUGIN_HOOKS['csrf_compliant']['mattermostjetlag'] = true;
 
@@ -116,17 +185,3 @@ function plugin_mattermostjetlag_check_config($verbose = false)
     return true;
 }
 
-/**
- * Lazy column migrations — runs on every plugin load, no-op after first run.
- */
-function plugin_mattermostjetlag_init()
-{
-    global $DB;
-    $table = GlpiPlugin\Mattermostjetlag\Config::getTable();
-    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'simulate_send')) {
-        $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `simulate_send` tinyint(1) NOT NULL DEFAULT 0 AFTER `extended_log`");
-    }
-    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'variables_override')) {
-        $DB->doQuery("ALTER TABLE `$table` ADD COLUMN `variables_override` TEXT DEFAULT NULL AFTER `simulate_send`");
-    }
-}
