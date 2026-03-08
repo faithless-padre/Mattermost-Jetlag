@@ -74,6 +74,10 @@
     color: var(--tblr-body-color-muted, #6c757d);
     font-size: 0.9rem;
 }
+.mjl-ej-target > i {
+    width: 1em;
+    text-align: center;
+}
 .mjl-ej-row:hover {
     background: var(--tblr-success-lt, #d1e7dd);
     border-color: var(--tblr-success, #2fb344);
