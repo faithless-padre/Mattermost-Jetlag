@@ -98,6 +98,9 @@ window.mjlEventJournalInit = function () {
                 if (t === 'Change') {
                     return '<span class="mjl-ej-target"><i class="ti ti-switch-3"></i><span class="badge bg-orange-lt text-orange">' + esc(t) + '</span></span>';
                 }
+                if (t === 'Problem') {
+                    return '<span class="mjl-ej-target"><i class="ti ti-bug"></i><span class="badge bg-red-lt text-red">' + esc(t) + '</span></span>';
+                }
                 return '<span class="mjl-ej-target"><i class="ti ti-ticket"></i><span class="badge bg-blue-lt text-blue">' + esc(t) + '</span></span>';
             })()
             + '<span class="mjl-ej-name"><i class="ti ti-file-text"></i><strong title="' + esc(ticketName) + '">' + esc(ticketName) + '</strong></span>'

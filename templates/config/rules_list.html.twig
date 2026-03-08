@@ -99,6 +99,8 @@
                 <span class="rule-target">
                     {% if rule.target == 'Change' %}
                         <span class="badge bg-orange-lt text-orange">{{ rule.target|e }}</span>
+                    {% elseif rule.target == 'Problem' %}
+                        <span class="badge bg-red-lt text-red">{{ rule.target|e }}</span>
                     {% else %}
                         <span class="badge bg-blue-lt text-blue">{{ rule.target|e }}</span>
                     {% endif %}

@@ -82,7 +82,7 @@ class NotificationRule extends CommonDBTM implements FilterableInterface
     public function getItemtypeToFilter(): string
     {
         $target = (string) ($this->fields['target'] ?? 'Ticket');
-        return in_array($target, ['Ticket', 'Change'], true) ? $target : 'Ticket';
+        return in_array($target, ['Ticket', 'Change', 'Problem'], true) ? $target : 'Ticket';
     }
 
     public function getItemtypeField(): ?string
