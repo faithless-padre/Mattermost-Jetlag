@@ -152,6 +152,7 @@ function plugin_mattermostjetlag_install()
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
         $DB->doQuery($query);
+        plugin_mattermostjetlag_seed_sample_rules();
     } else {
         if (!$DB->fieldExists($rules_table, 'search_criteria')) {
             $migration->addField($rules_table, 'search_criteria', 'text DEFAULT NULL', ['after' => 'raw_payload']);
@@ -282,4 +283,91 @@ function plugin_mattermostjetlag_uninstall()
     }
 
     return true;
+}
+
+/**
+ * Seed three example (disabled) notification rules on fresh install.
+ */
+function plugin_mattermostjetlag_seed_sample_rules(): void
+{
+    global $DB;
+
+    $now      = date('Y-m-d H:i:s');
+    $cf_table = CriteriaFilter::getTable();
+
+    $samples = [
+        // 1 — Problem status changed → send to all participants
+        [
+            'rule' => [
+                'name'            => '[Template] Problem -> Change Status -> Send to members',
+                'target'          => 'Problem',
+                'event'           => 'problem_status_changed',
+                'recipient'       => '{assigned}, {requester}, {observer}',
+                'message'         => "Hello! [The status of the issue has been changed.]({link})\r\nNew status: {status}",
+                'active'          => 0,
+                'use_raw_payload' => 0,
+                'raw_payload'     => null,
+                'date_creation'   => $now,
+            ],
+            'filter' => null,
+        ],
+        // 2 — Change approval → send to approver
+        [
+            'rule' => [
+                'name'            => '[Template] Change -> Approve -> Send to approver',
+                'target'          => 'Change',
+                'event'           => 'change_approval',
+                'recipient'       => '{approver}',
+                'message'         => "Hello! To continue working on the Change, we need your approval in the glpi system.\r\nChange subject: {title}\r\nImportance: {priority}\r\n[You can see the details at the link.]({link})",
+                'active'          => 0,
+                'use_raw_payload' => 0,
+                'raw_payload'     => null,
+                'date_creation'   => $now,
+            ],
+            'filter' => null,
+        ],
+        // 3 — New ticket (not closed) → send to channel with raw payload + extended filter
+        [
+            'rule' => [
+                'name'            => '[Template] Ticket -> New -> Send to channel',
+                'target'          => 'Ticket',
+                'event'           => 'create',
+                'recipient'       => 'glpi-notifications, @el.padre',
+                'message'         => "Hello! A new request has been registered in the glpi system.\r\n[You can find out more details by following the link.]({link})\r\n*Request initiator*: {requester}\r\n*Request subject*: {title}",
+                'active'          => 0,
+                'use_raw_payload' => 1,
+                'raw_payload'     => json_encode([
+                    'icon_emoji' => ':glpi:',
+                    'username'   => 'GLPI System',
+                    'priority'   => ['priority' => 'urgent'],
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'date_creation'   => $now,
+            ],
+            'filter' => [
+                'search_itemtype' => 'Ticket',
+                'search_criteria' => json_encode([
+                    [
+                        'link'       => 'AND',
+                        'field'      => '12',
+                        'searchtype' => 'equals',
+                        'value'      => 'notold',
+                    ],
+                ]),
+            ],
+        ],
+    ];
+
+    foreach ($samples as $sample) {
+        $DB->insert(NotificationRule::getTable(), $sample['rule']);
+        $ruleId = $DB->insertId();
+
+        if ($ruleId && $sample['filter'] !== null && $DB->tableExists($cf_table)) {
+            $DB->insert($cf_table, [
+                'itemtype'        => NotificationRule::class,
+                'items_id'        => $ruleId,
+                'search_itemtype' => $sample['filter']['search_itemtype'],
+                'search_criteria' => $sample['filter']['search_criteria'],
+            ]);
+        }
+    }
 }

@@ -52,7 +52,8 @@
                             <input type="text" name="webhook_url" id="field_webhook_url"
                                    class="form-control"
                                    value="{{ webhook_url|e }}"
-                                   data-placeholder="{{ placeholders.webhook_url|e }}">
+                                   data-placeholder="{{ placeholders.webhook_url|e }}"
+                                   data-real-url="{{ webhook_url_real|e }}">
                             <span class="form-help" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
                                   data-bs-title="{{ __('Incoming webhook URL from your Mattermost server. Create it in a channel via Integrations → Incoming Webhooks.', 'mattermostjetlag')|e }}">?</span>
                         </div>

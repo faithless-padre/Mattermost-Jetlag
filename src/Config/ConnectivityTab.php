@@ -26,6 +26,25 @@ if (!defined('GLPI_ROOT')) {
 class ConnectivityTab
 {
     private const TEMPLATE = '@mattermostjetlag/config/connectivity.html.twig';
+    private const MASK     = '****';
+
+    /**
+     * Mask the token part of a webhook URL (everything after /hooks/).
+     * e.g. https://mm.example.com/hooks/abc123 → https://mm.example.com/hooks/****
+     */
+    private static function maskWebhookUrl(string $url): string
+    {
+        $pos = stripos($url, '/hooks/');
+        if ($pos !== false) {
+            return substr($url, 0, $pos + 7) . self::MASK;
+        }
+        // Fallback: mask everything after the last slash
+        $last = strrpos($url, '/');
+        if ($last !== false && $last < strlen($url) - 1) {
+            return substr($url, 0, $last + 1) . self::MASK;
+        }
+        return $url;
+    }
 
     public static function render(Config $config): void
     {
@@ -62,7 +81,8 @@ class ConnectivityTab
         TemplateRenderer::getInstance()->display(self::TEMPLATE, [
             'config_id'          => (int) ($fields['id'] ?? 1),
             'connection_type'    => $connection_type,
-            'webhook_url'        => $webhook_url !== '' ? $webhook_url : Config::PLACEHOLDER_WEBHOOK_URL,
+            'webhook_url'        => $webhook_url !== '' ? self::maskWebhookUrl($webhook_url) : Config::PLACEHOLDER_WEBHOOK_URL,
+            'webhook_url_real'   => $webhook_url,
             'webhook_bot_nickname' => $webhook_bot_nickname !== '' ? $webhook_bot_nickname : Config::PLACEHOLDER_BOT_NICKNAME,
             'webhook_bot_avatar' => $webhook_bot_avatar !== '' ? $webhook_bot_avatar : Config::PLACEHOLDER_BOT_AVATAR,
             'mattermost_url'     => $mattermost_url !== '' ? $mattermost_url : Config::PLACEHOLDER_API_URL,
