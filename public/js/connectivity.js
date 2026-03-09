@@ -122,6 +122,10 @@ window.mattermostjetlagConnectivityInit = function () {
         }
 
         var webhookUrl = cleanVal(webhookInput, placeholders.webhook_url);
+        // If the field shows a masked value, use the real URL stored in data-real-url
+        if (webhookUrl.indexOf('****') !== -1) {
+            webhookUrl = (webhookInput ? webhookInput.dataset.realUrl : '') || '';
+        }
         var channel    = cleanVal(channelInput, placeholders.test_channel);
         var msg        = cleanVal(messageInput, placeholders.test_message);
         var nickname   = cleanVal(nickInput, placeholders.bot_nickname);

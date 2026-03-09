@@ -158,7 +158,13 @@ class Config extends CommonDBTM
         }
         if (isset($input['connection_type'])) {
             if ($input['connection_type'] === self::CONNECTION_WEBHOOK) {
-                $input['webhook_url']         = trim($input['webhook_url'] ?? '') !== '' ? trim($input['webhook_url']) : null;
+                $rawUrl = trim($input['webhook_url'] ?? '');
+                // If the submitted value still contains the display mask, the user didn't change it — preserve DB value
+                if (str_contains($rawUrl, '****')) {
+                    unset($input['webhook_url']);
+                } else {
+                    $input['webhook_url'] = $rawUrl !== '' ? $rawUrl : null;
+                }
                 $input['webhook_bot_nickname'] = trim($input['webhook_bot_nickname'] ?? '') !== '' ? trim($input['webhook_bot_nickname']) : null;
                 $input['webhook_bot_avatar']   = trim($input['webhook_bot_avatar'] ?? '') !== '' ? trim($input['webhook_bot_avatar']) : null;
                 $input['mattermost_url']      = null;
@@ -170,11 +176,46 @@ class Config extends CommonDBTM
                 $input['webhook_bot_avatar']   = null;
                 $input['mattermost_url']  = trim($input['mattermost_url'] ?? '') !== '' ? trim($input['mattermost_url']) : null;
                 $input['mattermost_login'] = trim($input['mattermost_login'] ?? '') !== '' ? trim($input['mattermost_login']) : null;
-                if (trim($input['mattermost_password'] ?? '') === '') {
+                $rawPassword = trim($input['mattermost_password'] ?? '');
+                if ($rawPassword === '') {
                     unset($input['mattermost_password']);
+                } else {
+                    $input['mattermost_password'] = self::encryptPassword($rawPassword);
                 }
             }
         }
         return $input;
+    }
+
+    public static function encryptPassword(string $password): string
+    {
+        if (class_exists('\GLPIKey')) {
+            try {
+                return (new \GLPIKey())->encrypt($password);
+            } catch (\Throwable $e) {
+                // fall through to openssl
+            }
+        }
+        $key = substr(sha1(GLPI_ROOT . 'mjl_pwd_key', true), 0, 16);
+        $iv  = substr(sha1('mjl_iv' . GLPI_ROOT, true), 0, 16);
+        return base64_encode(openssl_encrypt($password, 'AES-128-CBC', $key, OPENSSL_RAW_DATA, $iv));
+    }
+
+    public static function decryptPassword(string $encrypted): string
+    {
+        if (class_exists('\GLPIKey')) {
+            try {
+                $result = (new \GLPIKey())->decrypt($encrypted);
+                if ($result !== false && $result !== null) {
+                    return (string) $result;
+                }
+            } catch (\Throwable $e) {
+                // fall through to openssl
+            }
+        }
+        $key  = substr(sha1(GLPI_ROOT . 'mjl_pwd_key', true), 0, 16);
+        $iv   = substr(sha1('mjl_iv' . GLPI_ROOT, true), 0, 16);
+        $data = openssl_decrypt(base64_decode($encrypted), 'AES-128-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return $data !== false ? $data : '';
     }
 }

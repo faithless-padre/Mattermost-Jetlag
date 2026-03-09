@@ -119,7 +119,8 @@ class MattermostClient
         curl_close($ch);
 
         if ($httpCode < 200 || $httpCode >= 300) {
-            $error = 'Mattermost responded with HTTP ' . $httpCode . ': ' . $responseBody;
+            $safeBody = mb_substr(strip_tags((string) $responseBody), 0, 300);
+            $error = 'Mattermost responded with HTTP ' . $httpCode . ': ' . $safeBody;
             return false;
         }
 
@@ -189,7 +190,8 @@ class MattermostClient
         curl_close($ch);
 
         if ($httpCode < 200 || $httpCode >= 300) {
-            $error = 'Mattermost responded with HTTP ' . $httpCode . ': ' . $responseBody;
+            $safeBody = mb_substr(strip_tags((string) $responseBody), 0, 300);
+            $error = 'Mattermost responded with HTTP ' . $httpCode . ': ' . $safeBody;
             return false;
         }
 

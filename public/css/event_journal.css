@@ -107,11 +107,13 @@
     transform: rotate(90deg);
 }
 
-/* ---- Name / Initiator columns: left-align ---- */
+/* ---- Name / Initiator / Target columns: left-align ---- */
 .mjl-ej-name,
-.mjl-ej-initiator {
+.mjl-ej-initiator,
+.mjl-ej-target {
     justify-content: flex-start !important;
 }
+.mjl-ej-header-row > span:nth-child(3),
 .mjl-ej-header-row > span:nth-child(4),
 .mjl-ej-header-row > span:nth-child(5) {
     justify-content: flex-start;
