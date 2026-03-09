@@ -28,6 +28,13 @@ if (!Plugin::isPluginActive('mattermostjetlag')) {
     exit;
 }
 
+// ── AJAX error helper: log real exception, return safe generic message ──
+function mjl_ajax_error(\Throwable $e, string $ctx = ''): string {
+    $prefix = '[MattermostJetlag]' . ($ctx !== '' ? " [$ctx]" : '');
+    error_log($prefix . ' ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+    return 'An internal error occurred. Check the PHP error log for details.';
+}
+
 // ── AJAX: Save Extended Filter (core criteria_filter returns 400 for plugin itemtype) ──
 if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'save_rule_filter') {
     Session::checkLoginUser();
@@ -65,7 +72,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'save_rule
         echo json_encode(['ok' => true]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'save_rule_filter')]);
     }
     exit;
 }
@@ -96,7 +103,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'mass_upda
         echo json_encode(['ok' => true]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'mass_update')]);
     }
     exit;
 }
@@ -126,7 +133,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'mass_dele
         echo json_encode(['ok' => true]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'mass_delete')]);
     }
     exit;
 }
@@ -192,7 +199,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clone_rul
         echo json_encode(['ok' => true, 'new_id' => $new_id]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'clone_rule')]);
     }
     exit;
 }
@@ -227,7 +234,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'delete_ru
         echo json_encode(['ok' => true]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'delete_rule_filter')]);
     }
     exit;
 }
@@ -250,6 +257,18 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'test_webh
             echo json_encode([
                 'ok'         => false,
                 'error'      => 'Webhook URL, Channel and Message are required.',
+                'csrf_token' => $newCsrfToken,
+            ]);
+            exit;
+        }
+
+        // SSRF protection: only allow http/https scheme
+        $parsedUrl = parse_url($webhookUrl);
+        if (!$parsedUrl || !in_array(strtolower($parsedUrl['scheme'] ?? ''), ['http', 'https'], true)) {
+            http_response_code(400);
+            echo json_encode([
+                'ok'         => false,
+                'error'      => 'Invalid webhook URL: only http and https schemes are allowed.',
                 'csrf_token' => $newCsrfToken,
             ]);
             exit;
@@ -312,7 +331,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'test_webh
         http_response_code(500);
         echo json_encode([
             'ok'         => false,
-            'error'      => 'Internal server error: ' . $e->getMessage(),
+            'error'      => mjl_ajax_error($e, 'test_webhook'),
             'csrf_token' => Session::getNewCSRFToken(),
         ]);
     }
@@ -337,7 +356,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'toggle_si
         echo json_encode(['ok' => true, 'simulate_send' => $newValue, 'csrf_token' => Session::getNewCSRFToken()]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage(), 'csrf_token' => Session::getNewCSRFToken()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'toggle_simulate_send'), 'csrf_token' => Session::getNewCSRFToken()]);
     }
     exit;
 }
@@ -356,7 +375,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'toggle_ex
         echo json_encode(['ok' => true, 'extended_log' => $newValue, 'csrf_token' => Session::getNewCSRFToken()]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage(), 'csrf_token' => Session::getNewCSRFToken()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'toggle_extended_log'), 'csrf_token' => Session::getNewCSRFToken()]);
     }
     exit;
 }
@@ -517,7 +536,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'import_ru
         echo json_encode(['ok' => true, 'created' => $created, 'csrf_token' => Session::getNewCSRFToken()]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'import_rules')]);
     }
     exit;
 }
@@ -536,7 +555,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_eve
         echo json_encode(['ok' => true]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'clear_event_log')]);
     }
     exit;
 }
@@ -585,7 +604,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'get_event
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'get_event_log')]);
     }
     exit;
 }
@@ -624,7 +643,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test
         ], JSON_UNESCAPED_UNICODE);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'self_test_start')]);
     }
     exit;
 }
@@ -747,13 +766,13 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'self_test
                 break;
 
             default:
-                throw new \RuntimeException('Unknown step: ' . $step);
+                throw new \RuntimeException('Unknown self-test step');
         }
 
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'self_test_step')]);
     }
     exit;
 }
@@ -772,7 +791,7 @@ if (isset($_POST['mattermost_ajax']) && $_POST['mattermost_ajax'] === 'clear_sen
         echo json_encode(['ok' => true, 'csrf_token' => Session::getNewCSRFToken()]);
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['ok' => false, 'error' => mjl_ajax_error($e, 'clear_send_log')]);
     }
     exit;
 }
@@ -789,7 +808,9 @@ $redirect_rules  = $base_url . '&_glpi_tab=' . urlencode($tab_rules);
 $redirect_debug  = $base_url . '&_glpi_tab=' . urlencode($tab_debug);
 
 if (isset($_POST['update_config'])) {
-    $config->update($_POST);
+    $allowed = ['connection_type', 'webhook_url', 'webhook_bot_nickname', 'webhook_bot_avatar',
+                'mattermost_url', 'mattermost_login', 'mattermost_password'];
+    $config->update(array_intersect_key($_POST, array_flip($allowed)) + ['id' => 1]);
     Html::back();
 }
 
