@@ -38,6 +38,8 @@ Choose one of the supported connection types:
 
 ### Notification Rules
 
+![Rules List](screenshots/Rules%20List.png)
+
 Each rule defines:
 - **Target** — Ticket, Change, or Problem
 - **Event** — New, Updated, Solved, Closed, etc.
