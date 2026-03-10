@@ -17,7 +17,7 @@
     </authors>
     <versions>
         <version>
-            <num>3.0.1-beta</num>
+            <num>3.0.2-beta</num>
             <compatibility>~11.0.0</compatibility>
         </version>
     </versions>

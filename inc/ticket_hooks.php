@@ -24,6 +24,11 @@ use User;
 if (!defined('GLPI_ROOT')) {
     die("Sorry. You can't access this file directly");
 }
+/**
+ * Сколько секунд после создания объект считается «слишком свежим».
+ * События, возникающие в этот период, игнорируются как мусорные.
+ */
+define('MATTERMOSTJETLAG_TOO_FRESH_SECONDS', 0);
 
 require_once __DIR__ . '/ticket_logger.php';
 
@@ -65,7 +70,9 @@ function plugin_mattermostjetlag_map_action_to_rule_event(string $action): ?stri
         'approved'       => 'approved',
         'rejected'       => 'rejected',
         'status_changed' => 'status_changed',
-        'members_change' => 'members_change',
+        'members_change'       => 'members_change',
+        'ticket_member_added'   => 'ticket_member_added',
+        'ticket_member_removed' => 'ticket_member_removed',
         'solution'          => 'solution',
         'solution_approved' => 'solution_approved',
         'solution_rejected' => 'solution_rejected',
@@ -809,6 +816,11 @@ function plugin_mattermostjetlag_expand_recipients(string $recipientStr, array $
             if ($approver !== '') {
                 $result[] = str_starts_with($approver, '@') ? $approver : '@' . $approver;
             }
+        } elseif ($normalized === 'member') {
+            $member = (string) ($data['member_login'] ?? '');
+            if ($member !== '') {
+                $result[] = str_starts_with($member, '@') ? $member : '@' . $member;
+            }
         } else {
             $result[] = $token;
         }
@@ -873,7 +885,9 @@ function plugin_mattermostjetlag_build_replacements(array $data): array
         '{requester}' => $formatLogins($requesterLogins),
         '{observer}'  => $formatLogins($observerLogins),
         '{assigned}'  => $formatLogins($assigneeLogins),
-        '{approver}'  => $approverFormatted,
+        '{approver}'    => $approverFormatted,
+        '{member}'      => (string) ($data['member_login'] ?? ''),
+        '{membertype}'  => (string) ($data['member_type_label'] ?? ''),
     ];
 }
 
@@ -1065,14 +1079,14 @@ function plugin_mattermostjetlag_dispatch_notifications(array $matchingRules, ar
 }
 
 /**
- * Возвращает true, если заявка была создана менее 10 секунд назад.
+ * Возвращает true, если заявка была создана менее MATTERMOSTJETLAG_TOO_FRESH_SECONDS секунд назад.
  * Используется для игнорирования «мусорных» событий update/approval/followup/members_change,
  * которые GLPI генерирует сразу после создания тикета.
  */
 function plugin_mattermostjetlag_ticket_is_too_fresh(CommonDBTM $ticket): bool
 {
     $created = strtotime($ticket->fields['date_creation'] ?? '');
-    return $created !== false && (time() - $created) < 10;
+    return $created !== false && (time() - $created) < MATTERMOSTJETLAG_TOO_FRESH_SECONDS;
 }
 
 // ── Hooks ──
@@ -1550,6 +1564,75 @@ function plugin_mattermostjetlag_item_add_Ticket_User(CommonDBTM $item): void
     }
     plugin_mattermostjetlag_log_debug('item_add_Ticket_User', $actionForLog, $item, $ticket, $data);
     plugin_mattermostjetlag_log_ticket($data);
+
+    $vo               = plugin_mattermostjetlag_get_variables_override();
+    $memberTypeOv     = $vo['member_type']['member_type'] ?? [];
+    $memberTypeLabels = array_replace([1 => 'Requester', 2 => 'Assignee', 3 => 'Observer'], $memberTypeOv);
+    $addedAction      = 'ticket_member_added';
+    $addedData        = plugin_mattermostjetlag_build_ticket_log_data($ticket, $addedAction);
+    if (!empty($addedData)) {
+        $memberId   = (int) ($item->fields['users_id'] ?? 0);
+        $memberType = (int) ($item->fields['type'] ?? 0);
+        if ($memberId > 0) {
+            $memberUser = new User();
+            if ($memberUser->getFromDB($memberId)) {
+                $addedData['member_login'] = $memberUser->fields['login'] ?? $memberUser->fields['name'] ?? null;
+                $addedData['member_name']  = $memberUser->getFriendlyName();
+            }
+        }
+        $addedData['member_type_label'] = $memberTypeLabels[$memberType] ?? '';
+        $addedRules = plugin_mattermostjetlag_get_matching_rules($addedAction, $ticket);
+        $addedData['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $addedRules);
+        if (empty($addedRules)) {
+            $addedData['matching_rules_note'] = 'no matching rules';
+        } else {
+            $addedData['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($addedRules, $addedData);
+            $addedData['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($addedRules, $addedData);
+        }
+        plugin_mattermostjetlag_log_ticket($addedData);
+    }
+}
+
+function plugin_mattermostjetlag_item_delete_Ticket_User(CommonDBTM $item): void
+{
+    if ($item::getType() !== 'Ticket_User') {
+        return;
+    }
+    $ticketId = (int) ($item->fields['tickets_id'] ?? 0);
+    if ($ticketId <= 0) {
+        return;
+    }
+    $ticket = new Ticket();
+    if (!$ticket->getFromDB($ticketId)) {
+        return;
+    }
+
+    $vo               = plugin_mattermostjetlag_get_variables_override();
+    $memberTypeOv     = $vo['member_type']['member_type'] ?? [];
+    $memberTypeLabels = array_replace([1 => 'Requester', 2 => 'Assignee', 3 => 'Observer'], $memberTypeOv);
+    $removedAction    = 'ticket_member_removed';
+    $removedData       = plugin_mattermostjetlag_build_ticket_log_data($ticket, $removedAction);
+    if (!empty($removedData)) {
+        $memberId   = (int) ($item->fields['users_id'] ?? 0);
+        $memberType = (int) ($item->fields['type'] ?? 0);
+        if ($memberId > 0) {
+            $memberUser = new User();
+            if ($memberUser->getFromDB($memberId)) {
+                $removedData['member_login'] = $memberUser->fields['login'] ?? $memberUser->fields['name'] ?? null;
+                $removedData['member_name']  = $memberUser->getFriendlyName();
+            }
+        }
+        $removedData['member_type_label'] = $memberTypeLabels[$memberType] ?? '';
+        $removedRules = plugin_mattermostjetlag_get_matching_rules($removedAction, $ticket);
+        $removedData['matching_rule_ids'] = array_map(fn ($r) => $r->getID(), $removedRules);
+        if (empty($removedRules)) {
+            $removedData['matching_rules_note'] = 'no matching rules';
+        } else {
+            $removedData['rendered_messages'] = plugin_mattermostjetlag_render_rule_messages_for_ticket($removedRules, $removedData);
+            $removedData['dispatch_results']  = plugin_mattermostjetlag_dispatch_notifications($removedRules, $removedData);
+        }
+        plugin_mattermostjetlag_log_ticket($removedData);
+    }
 }
 
 function plugin_mattermostjetlag_item_update_TicketValidation(CommonDBTM $item): void

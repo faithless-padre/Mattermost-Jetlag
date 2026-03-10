@@ -30,7 +30,9 @@ class EditorTab
         'approved'       => 'Ticket Approved',
         'rejected'       => 'Ticket Rejected',
         'status_changed' => 'Status Changed',
-        'members_change' => 'Members Changed',
+        'members_change'        => 'Members Changed (General)',
+        'ticket_member_added'   => 'Add Ticket Member',
+        'ticket_member_removed' => 'Remove Ticket Member',
         'solution'          => 'Solution Proposed',
         'solution_approved' => 'Solution Approved',
         'solution_rejected' => 'Solution Rejected',
@@ -63,8 +65,8 @@ class EditorTab
     public const EVENTS_BY_TARGET = [
         'Ticket' => [
             'create', 'followup', 'approval', 'approved', 'rejected',
-            'status_changed', 'members_change', 'solution', 'solution_approved',
-            'solution_rejected', 'delete', 'update',
+            'status_changed', 'members_change', 'ticket_member_added', 'ticket_member_removed',
+            'solution', 'solution_approved', 'solution_rejected', 'delete', 'update',
         ],
         'Change' => [
             'change_create', 'change_status_changed', 'change_update', 'change_delete',
@@ -92,12 +94,14 @@ class EditorTab
 
     /** Extra macros available only for specific events (merged on top of base macros) */
     public const RULE_MACROS_EXTRA_BY_EVENT = [
-        'approval'          => ['approver'],
-        'approved'          => ['approver'],
-        'rejected'          => ['approver'],
-        'change_approval'   => ['approver'],
-        'change_approved'   => ['approver'],
-        'change_rejected'   => ['approver'],
+        'approval'              => ['approver'],
+        'approved'              => ['approver'],
+        'rejected'              => ['approver'],
+        'change_approval'       => ['approver'],
+        'change_approved'       => ['approver'],
+        'change_rejected'       => ['approver'],
+        'ticket_member_added'   => ['member', 'membertype'],
+        'ticket_member_removed' => ['member', 'membertype'],
     ];
 
     /** Recipient macros by target */
@@ -109,12 +113,14 @@ class EditorTab
 
     /** Extra recipient options available only for specific events */
     public const RECIPIENT_OPTIONS_EXTRA_BY_EVENT = [
-        'approval'          => ['approver' => 'approver'],
-        'approved'          => ['approver' => 'approver'],
-        'rejected'          => ['approver' => 'approver'],
-        'change_approval'   => ['approver' => 'approver'],
-        'change_approved'   => ['approver' => 'approver'],
-        'change_rejected'   => ['approver' => 'approver'],
+        'approval'              => ['approver' => 'approver'],
+        'approved'              => ['approver' => 'approver'],
+        'rejected'              => ['approver' => 'approver'],
+        'change_approval'       => ['approver' => 'approver'],
+        'change_approved'       => ['approver' => 'approver'],
+        'change_rejected'       => ['approver' => 'approver'],
+        'ticket_member_added'   => ['member' => 'member'],
+        'ticket_member_removed' => ['member' => 'member'],
     ];
 
     public const DEFAULT_RULE_NAME = '[Mattermost] -> Send notifications to all';

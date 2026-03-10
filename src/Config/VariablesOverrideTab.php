@@ -114,6 +114,18 @@ class VariablesOverrideTab
                     'priority' => self::priorityDefaults(),
                 ],
             ],
+            'member_type' => [
+                'label'  => 'Member Roles',
+                'icon'   => 'ti-user',
+                'color'  => 'bg-purple',
+                'groups' => [
+                    'member_type' => [
+                        1 => 'Requester',
+                        2 => 'Assignee',
+                        3 => 'Observer',
+                    ],
+                ],
+            ],
         ];
     }
 
