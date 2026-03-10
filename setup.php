@@ -13,7 +13,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_MATTERMOSTJETLAG_VERSION', '3.0.1-beta');
+define('PLUGIN_MATTERMOSTJETLAG_VERSION', '3.0.2-beta');
 define('PLUGIN_MATTERMOSTJETLAG_MIN_GLPI', '11.0.0');
 define('PLUGIN_MATTERMOSTJETLAG_MAX_GLPI', '12.0.0');
 
@@ -75,6 +75,9 @@ function plugin_mattermostjetlag_default_variables_override(): string
             'impact'   => ['1' => 'Очень низкое', '2' => 'Низкое', '3' => 'Среднее', '4' => 'Высокое', '5' => 'Очень высокое'],
             'priority' => ['1' => 'Очень низкий', '2' => 'Низкий', '3' => 'Средний', '4' => 'Высокий', '5' => 'Очень высокий'],
         ],
+        'member_type' => [
+            'member_type' => ['1' => 'Инициатор', '2' => 'Исполнитель', '3' => 'Наблюдатель'],
+        ],
     ];
     return json_encode($ru, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
@@ -118,6 +121,12 @@ function plugin_init_mattermostjetlag()
         'Change'           => 'plugin_mattermostjetlag_item_update_Change',
         'ChangeValidation' => 'plugin_mattermostjetlag_item_update_ChangeValidation',
         'Problem'          => 'plugin_mattermostjetlag_item_update_Problem',
+    ];
+    $PLUGIN_HOOKS['item_delete']['mattermostjetlag'] = [
+        'Ticket_User' => 'plugin_mattermostjetlag_item_delete_Ticket_User',
+    ];
+    $PLUGIN_HOOKS['item_purge']['mattermostjetlag'] = [
+        'Ticket_User' => 'plugin_mattermostjetlag_item_delete_Ticket_User',
     ];
     $PLUGIN_HOOKS['pre_item_delete']['mattermostjetlag'] = [
         'Ticket'  => 'plugin_mattermostjetlag_pre_item_delete_Ticket',
